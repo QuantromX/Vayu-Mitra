@@ -43,9 +43,7 @@ export function buildShareCardSpec(params: {
       hi
         ? 'कम प्रदूषण वाले समय में बाहरी काम निपटाएँ।'
         : 'Shift outdoor errands to the lower-pollution window ahead.',
-      hi
-        ? 'पीक धुंध के घंटों में खिड़कियाँ बंद रखें।'
-        : 'Keep windows closed during peak haze hours.'
+      hi ? 'पीक धुंध के घंटों में खिड़कियाँ बंद रखें।' : 'Keep windows closed during peak haze hours.'
     );
   }
 

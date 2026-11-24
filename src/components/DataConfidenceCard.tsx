@@ -62,7 +62,9 @@ export const DataConfidenceCard: React.FC<DataConfidenceCardProps> = React.memo(
             onClick={() => setOpen((prev) => !prev)}
             className="min-h-[44px] px-4 py-2 rounded-xl bg-slate-950/65 border border-white/25 text-xs font-semibold text-white hover:bg-white/15 inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <span>{open ? (hi ? 'छुपाएँ' : 'Hide details') : hi ? 'विवरण देखें' : 'Read details'}</span>
+            <span>
+              {open ? (hi ? 'छुपाएँ' : 'Hide details') : hi ? 'विवरण देखें' : 'Read details'}
+            </span>
             <ChevronDown
               className={`w-4 h-4 transition-transform duration-200 ${
                 open ? 'rotate-180' : ''
@@ -120,7 +122,10 @@ export const DataConfidenceCard: React.FC<DataConfidenceCardProps> = React.memo(
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-950/55 border border-white/15 px-3.5 py-2.5">
                 <span className="inline-flex items-center gap-1.5 text-slate-200">
-                  <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0" aria-hidden="true" />
+                  <ShieldAlert
+                    className="w-4 h-4 text-amber-300 shrink-0"
+                    aria-hidden="true"
+                  />
                   <span>
                     {hi
                       ? `अंतिम अपडेट: ${updatedIst} · हर 10 मिनट कैश`

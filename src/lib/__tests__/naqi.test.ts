@@ -140,9 +140,9 @@ describe('India NAQI Engine', () => {
 
     // Forward series starts strictly at 16:00 Today and covers 24h up to 15:00 Tomorrow
     expect(result.forwardHourly).toHaveLength(24);
-    expect(result.forwardHourly[0].hourLabel).toBe('16:00');
-    expect(result.forwardHourly[0].dayLabel).toBe('Today');
-    expect(result.forwardHourly[0].isCurrentHour).toBe(true);
+    expect(result.forwardHourly[0]?.hourLabel).toBe('16:00');
+    expect(result.forwardHourly[0]?.dayLabel).toBe('Today');
+    expect(result.forwardHourly[0]?.isCurrentHour).toBe(true);
     expect(result.forwardHourly.slice(1).every((pt) => !pt.isCurrentHour)).toBe(true);
 
     // Must ignore past 03:00-05:00 clean hours and pick Tomorrow 11:00-14:00
@@ -197,5 +197,44 @@ describe('India NAQI Engine', () => {
       expect(rule.scope).toBe('everyone');
       expect(rule.type).toBe('N95 / FFP2');
     }
+  });
+
+  it('handles midnight rollover across Today 23:00 -> Tomorrow 01:00 and sparse null hours safely', () => {
+    const hourly = buildMultiDayHourlySeries().map((pt, idx) =>
+      idx >= 23 && idx <= 25 ? { ...pt, pm2_5: 15, pm10: 25 } : pt
+    );
+    // Simulate a sensor gap (null values) inside a middle hour
+    const gapPoint = hourly[28];
+    if (gapPoint) {
+      gapPoint.pm2_5 = null;
+      gapPoint.pm10 = null;
+    }
+
+    const midnightResult = evaluateAirQuality({
+      latitude: 28.6,
+      longitude: 77.2,
+      currentTime: '2026-11-22T23:00',
+      currentPm25: 35,
+      currentPm10: 55,
+      hourly,
+      fetchedAt: '2026-11-22T17:30:00.000Z',
+    });
+
+    expect(midnightResult.forwardHourly).toHaveLength(24);
+    expect(midnightResult.forwardHourly[0]?.dayLabel).toBe('Today');
+    expect(midnightResult.forwardHourly[0]?.hourLabel).toBe('23:00');
+    expect(midnightResult.forwardHourly[1]?.dayLabel).toBe('Tomorrow');
+    expect(midnightResult.forwardHourly[1]?.hourLabel).toBe('00:00');
+
+    // Window spanning Today 23:00 -> Tomorrow 02:00 labels endDayLabel as Tomorrow
+    expect(midnightResult.cleanestWindow?.dayLabel).toBe('Today');
+    expect(midnightResult.cleanestWindow?.endDayLabel).toBe('Tomorrow');
+  });
+
+  it('clamps non-finite and extreme pollutant inputs safely without throwing', () => {
+    expect(computePm25SubIndex(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(computePm10SubIndex(Number.NEGATIVE_INFINITY)).toBe(0);
+    expect(computePm10SubIndex(1200)).toBe(500);
+    expect(computeNaqiFromPair(Number.NaN, 50).aqi).toBe(50);
   });
 });

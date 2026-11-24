@@ -223,10 +223,7 @@ export function resolveThemeTokens(params: {
 /**
  * Applies theme tokens as CSS custom properties onto a DOM element.
  */
-export function applyThemeCssVariables(
-  element: HTMLElement,
-  tokens: ThemeTokens
-): void {
+export function applyThemeCssVariables(element: HTMLElement, tokens: ThemeTokens): void {
   const s = element.style;
   s.setProperty('--vm-sky-top', tokens.skyTop);
   s.setProperty('--vm-sky-mid', tokens.skyMid);

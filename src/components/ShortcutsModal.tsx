@@ -11,15 +11,19 @@ interface ShortcutsModalProps {
 const SHORTCUTS = [
   { key: '/', en: 'Focus Indian city search', hi: 'शहर खोज बॉक्स पर जाएँ' },
   { key: 'R', en: 'Refresh live Open-Meteo readings', hi: 'लाइव डेटा रीफ़्रेश करें' },
-  { key: '[ / ]', en: 'Scrub 24h timeline backward / forward', hi: '24 घंटे टाइमलाइन आगे / पीछे करें' },
-  { key: '?', en: 'Toggle keyboard shortcuts help', hi: 'कीबोर्ड शॉर्टकट सहायता खोलें/बंद करें' },
+  {
+    key: '[ / ]',
+    en: 'Scrub 24h timeline backward / forward',
+    hi: '24 घंटे टाइमलाइन आगे / पीछे करें',
+  },
+  {
+    key: '?',
+    en: 'Toggle keyboard shortcuts help',
+    hi: 'कीबोर्ड शॉर्टकट सहायता खोलें/बंद करें',
+  },
 ];
 
-const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
-  open,
-  language,
-  onClose,
-}) => {
+const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ open, language, onClose }) => {
   const hi = language === 'hi';
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -44,6 +48,7 @@ const ShortcutsModal: React.FC<ShortcutsModalProps> = ({
         if (focusables.length === 0) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
+        if (!first || !last) return;
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();

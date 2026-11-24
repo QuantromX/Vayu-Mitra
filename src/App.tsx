@@ -1,12 +1,4 @@
-import {
-  Suspense,
-  lazy,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
 import { AdviceCardsGrid, VerdictAndMaskCard } from './components/AdviceSection';
@@ -53,9 +45,16 @@ export default function App() {
     applySampleProfile,
   } = useUserProfile();
 
-  const { weather, naqi, loading, error, lastUpdated, retry } = useAirData(
-    profile.city
-  );
+  const {
+    weather,
+    naqi,
+    loading,
+    error,
+    lastUpdated,
+    isOfflineData,
+    offlineSavedAt,
+    retry,
+  } = useAirData(profile.city);
 
   // Auto-collapse "Edit profile" card after the first live result arrives
   const [profileOpen, setProfileOpen] = useState(true);
@@ -145,9 +144,7 @@ export default function App() {
     (actionId: string) => {
       setCompletedState((prev) => {
         const baseIds =
-          prev.key === planStorageKey
-            ? prev.ids
-            : loadCompletedActions(planStorageKey);
+          prev.key === planStorageKey ? prev.ids : loadCompletedActions(planStorageKey);
         const next = toggleActionDone(baseIds, actionId);
         saveCompletedActions(planStorageKey, next);
         return { key: planStorageKey, ids: next };
@@ -205,6 +202,10 @@ export default function App() {
     applyThemeCssVariables(document.documentElement, theme);
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.lang = profile.language;
+  }, [profile.language]);
+
   // Compact sticky header readout when Hero scrolls out of view
   useEffect(() => {
     const onScroll = () => {
@@ -221,9 +222,7 @@ export default function App() {
   const handleStepHour = useCallback(
     (delta: number) => {
       if (totalForwardHours <= 0) return;
-      setScrubIndex((prev) =>
-        Math.max(0, Math.min(totalForwardHours - 1, prev + delta))
-      );
+      setScrubIndex((prev) => Math.max(0, Math.min(totalForwardHours - 1, prev + delta)));
     },
     [setScrubIndex, totalForwardHours]
   );
@@ -296,9 +295,8 @@ export default function App() {
     setShareNotice(null);
     triggerHapticTap(10);
     try {
-      const { buildShareCardSpec, shareOrDownloadAirCard } = await import(
-        './lib/share/shareCard'
-      );
+      const { buildShareCardSpec, shareOrDownloadAirCard } =
+        await import('./lib/share/shareCard');
       const updatedLabel = lastUpdated
         ? lastUpdated.toLocaleTimeString('en-IN', {
             hour: '2-digit',
@@ -308,9 +306,7 @@ export default function App() {
         : hi
           ? 'लाइव'
           : 'Live';
-      const categoryLabel = hi
-        ? CATEGORY_HINDI[scrubbed.category]
-        : scrubbed.category;
+      const categoryLabel = hi ? CATEGORY_HINDI[scrubbed.category] : scrubbed.category;
       const spec = buildShareCardSpec({
         cityName: profile.city.name,
         admin1: profile.city.admin1,
@@ -335,14 +331,23 @@ export default function App() {
       );
       window.setTimeout(() => setShareNotice(null), 3500);
     } catch {
-      setShareNotice(
-        hi ? 'एयर कार्ड नहीं बन सका' : 'Could not render Air Card'
-      );
+      setShareNotice(hi ? 'एयर कार्ड नहीं बन सका' : 'Could not render Air Card');
       window.setTimeout(() => setShareNotice(null), 3500);
     } finally {
       setSharing(false);
     }
-  }, [advice, hi, lastUpdated, naqi, profile.city.admin1, profile.city.name, profile.language, scrubbed, sharing, theme]);
+  }, [
+    advice,
+    hi,
+    lastUpdated,
+    naqi,
+    profile.city.admin1,
+    profile.city.name,
+    profile.language,
+    scrubbed,
+    sharing,
+    theme,
+  ]);
 
   return (
     <div
@@ -455,6 +460,8 @@ export default function App() {
           <ErrorBanner
             message={error}
             language={profile.language}
+            isOfflineData={isOfflineData}
+            offlineSavedAt={offlineSavedAt}
             onRetry={() => retry(true)}
           />
         )}
@@ -467,6 +474,7 @@ export default function App() {
           theme={theme}
           loading={loading}
           lastUpdated={lastUpdated}
+          isOfflineData={isOfflineData}
           language={profile.language}
           sharing={sharing}
           shareNotice={shareNotice}
@@ -551,12 +559,7 @@ export default function App() {
 
         {/* 6. Ask VayuMitra — grounded live Q&A */}
         <Suspense fallback={null}>
-          <AskVayuMitra
-            profile={profile}
-            naqi={naqi}
-            weather={weather}
-            theme={theme}
-          />
+          <AskVayuMitra profile={profile} naqi={naqi} weather={weather} theme={theme} />
         </Suspense>
 
         {/* 7. Photo Check — EXIF-stripped visual room & sky advisory check */}
@@ -574,9 +577,7 @@ export default function App() {
         />
 
         <footer className="pt-5 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
-          <span>
-            {hi ? 'वायुमित्र · डेटा: Open-Meteo' : 'VayuMitra · Data: Open-Meteo'}
-          </span>
+          <span>{hi ? 'वायुमित्र · डेटा: Open-Meteo' : 'VayuMitra · Data: Open-Meteo'}</span>
           <div className="flex flex-wrap items-center gap-3">
             <span>
               {hi

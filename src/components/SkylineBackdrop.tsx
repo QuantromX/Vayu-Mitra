@@ -59,10 +59,42 @@ function LandmarkMidLayer({ cityKey }: { cityKey: SkylineCityKey }) {
     return (
       <g fill="currentColor" fillOpacity="0.58">
         <polygon points="168,340 182,168 192,168 206,340" />
-        <line x1="187" y1="176" x2="72" y2="318" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.55" />
-        <line x1="187" y1="196" x2="108" y2="318" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.55" />
-        <line x1="187" y1="176" x2="296" y2="318" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.55" />
-        <line x1="187" y1="196" x2="262" y2="318" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.55" />
+        <line
+          x1="187"
+          y1="176"
+          x2="72"
+          y2="318"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeOpacity="0.55"
+        />
+        <line
+          x1="187"
+          y1="196"
+          x2="108"
+          y2="318"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeOpacity="0.55"
+        />
+        <line
+          x1="187"
+          y1="176"
+          x2="296"
+          y2="318"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeOpacity="0.55"
+        />
+        <line
+          x1="187"
+          y1="196"
+          x2="262"
+          y2="318"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeOpacity="0.55"
+        />
         <rect x="20" y="316" width="320" height="8" />
         <rect x="355" y="220" width="44" height="120" />
         <rect x="410" y="196" width="52" height="144" />
@@ -108,10 +140,42 @@ function LandmarkMidLayer({ cityKey }: { cityKey: SkylineCityKey }) {
           strokeWidth="6"
           strokeOpacity="0.6"
         />
-        <line x1="115" y1="206" x2="115" y2="340" stroke="currentColor" strokeWidth="5" strokeOpacity="0.6" />
-        <line x1="255" y1="206" x2="255" y2="340" stroke="currentColor" strokeWidth="5" strokeOpacity="0.6" />
-        <line x1="115" y1="206" x2="185" y2="278" stroke="currentColor" strokeWidth="3" strokeOpacity="0.55" />
-        <line x1="255" y1="206" x2="185" y2="278" stroke="currentColor" strokeWidth="3" strokeOpacity="0.55" />
+        <line
+          x1="115"
+          y1="206"
+          x2="115"
+          y2="340"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeOpacity="0.6"
+        />
+        <line
+          x1="255"
+          y1="206"
+          x2="255"
+          y2="340"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeOpacity="0.6"
+        />
+        <line
+          x1="115"
+          y1="206"
+          x2="185"
+          y2="278"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeOpacity="0.55"
+        />
+        <line
+          x1="255"
+          y1="206"
+          x2="185"
+          y2="278"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeOpacity="0.55"
+        />
         <rect x="20" y="286" width="335" height="8" />
         <rect x="442" y="182" width="18" height="158" />
         <circle cx="451" cy="176" r="10" />
@@ -157,201 +221,200 @@ export const HeroSkylineScene: React.FC<{
   pm25: number;
   sunXPercent?: number;
   sunYPercent?: number;
-}> = React.memo(
-  ({ cityName, theme, pm25, sunXPercent = 82, sunYPercent = 18 }) => {
-    const cityKey = useMemo(() => resolveCitySkyline(cityName), [cityName]);
-    const prefersReducedMotion = useReducedMotion();
-    const farLayerOpacity = Math.max(0.06, 0.34 - theme.hazeOpacity * 0.3);
+}> = React.memo(({ cityName, theme, pm25, sunXPercent = 82, sunYPercent = 18 }) => {
+  const cityKey = useMemo(() => resolveCitySkyline(cityName), [cityName]);
+  const prefersReducedMotion = useReducedMotion();
+  const farLayerOpacity = Math.max(0.06, 0.34 - theme.hazeOpacity * 0.3);
 
-    const [parallax, setParallax] = useState({ x: 0, y: 0 });
-    const effectiveParallax = prefersReducedMotion ? { x: 0, y: 0 } : parallax;
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const effectiveParallax = prefersReducedMotion ? { x: 0, y: 0 } : parallax;
 
-    useEffect(() => {
-      if (prefersReducedMotion) {
-        return;
-      }
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      return;
+    }
 
-      const handleScroll = () => {
-        const yOffset = Math.min(26, window.scrollY * 0.08);
-        setParallax((prev) => ({ ...prev, y: yOffset }));
-      };
+    const handleScroll = () => {
+      const yOffset = Math.min(26, window.scrollY * 0.08);
+      setParallax((prev) => ({ ...prev, y: yOffset }));
+    };
 
-      const handleOrientation = (evt: DeviceOrientationEvent) => {
-        if (typeof evt.gamma !== 'number') return;
-        const clamped = Math.max(-18, Math.min(18, evt.gamma));
-        setParallax((prev) => ({ ...prev, x: clamped * 0.6 }));
-      };
+    const handleOrientation = (evt: DeviceOrientationEvent) => {
+      if (typeof evt.gamma !== 'number') return;
+      const clamped = Math.max(-18, Math.min(18, evt.gamma));
+      setParallax((prev) => ({ ...prev, x: clamped * 0.6 }));
+    };
 
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      window.addEventListener('deviceorientation', handleOrientation, {
-        passive: true,
-      });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('deviceorientation', handleOrientation, {
+      passive: true,
+    });
 
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('deviceorientation', handleOrientation);
-      };
-    }, [prefersReducedMotion]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, [prefersReducedMotion]);
 
-    return (
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden vm-theme-transition"
+      aria-hidden="true"
+      style={{
+        background: `linear-gradient(180deg, ${theme.skyTop} 0%, ${theme.skyMid} 52%, ${theme.skyBottom} 100%)`,
+      }}
+    >
+      {/* Static subtle SVG noise grain */}
+      <div className="absolute inset-0 vm-grain-overlay opacity-70" />
+
+      {/* Lazy-loaded lightweight particle canvas (disabled under reduced motion) */}
+      {!prefersReducedMotion && (
+        <Suspense fallback={null}>
+          <HeroParticleCanvas
+            theme={theme}
+            pm25={pm25}
+            sunXPercent={sunXPercent}
+            sunYPercent={sunYPercent}
+          />
+        </Suspense>
+      )}
+
+      {/* Sun or Moon disc positioned along the active hour's sky arc */}
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden vm-theme-transition"
-        aria-hidden="true"
+        className="absolute w-16 h-16 sm:w-24 sm:h-24 rounded-full -translate-x-1/2 -translate-y-1/2 vm-theme-transition"
         style={{
-          background: `linear-gradient(180deg, ${theme.skyTop} 0%, ${theme.skyMid} 52%, ${theme.skyBottom} 100%)`,
+          left: `${sunXPercent}%`,
+          top: `${sunYPercent}%`,
+          background: `radial-gradient(circle, ${theme.sunColor} 50%, transparent 100%)`,
+          opacity:
+            theme.weatherScene === 'fog' || theme.weatherScene === 'thunder'
+              ? 0.35
+              : Math.max(0.42, 0.96 - theme.hazeOpacity * 0.42),
+          boxShadow: `0 0 48px 14px ${theme.sunGlow}`,
+          transition: prefersReducedMotion
+            ? 'none'
+            : 'left 450ms cubic-bezier(0.16, 1, 0.3, 1), top 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease',
         }}
-      >
-        {/* Static subtle SVG noise grain */}
-        <div className="absolute inset-0 vm-grain-overlay opacity-70" />
+      />
 
-        {/* Lazy-loaded lightweight particle canvas (disabled under reduced motion) */}
-        {!prefersReducedMotion && (
-          <Suspense fallback={null}>
-            <HeroParticleCanvas
-              theme={theme}
-              pm25={pm25}
-              sunXPercent={sunXPercent}
-              sunYPercent={sunYPercent}
-            />
-          </Suspense>
-        )}
-
-        {/* Sun or Moon disc positioned along the active hour's sky arc */}
-        <div
-          className="absolute w-16 h-16 sm:w-24 sm:h-24 rounded-full -translate-x-1/2 -translate-y-1/2 vm-theme-transition"
-          style={{
-            left: `${sunXPercent}%`,
-            top: `${sunYPercent}%`,
-            background: `radial-gradient(circle, ${theme.sunColor} 50%, transparent 100%)`,
-            opacity:
-              theme.weatherScene === 'fog' || theme.weatherScene === 'thunder'
-                ? 0.35
-                : Math.max(0.42, 0.96 - theme.hazeOpacity * 0.42),
-            boxShadow: `0 0 48px 14px ${theme.sunGlow}`,
-            transition: prefersReducedMotion
-              ? 'none'
-              : 'left 450ms cubic-bezier(0.16, 1, 0.3, 1), top 450ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease',
-          }}
-        />
-
-        {/* Cloudy / Thunder cloud silhouettes */}
-        {(theme.weatherScene === 'cloudy' ||
-          theme.weatherScene === 'rain' ||
-          theme.weatherScene === 'thunder') && (
-          <svg
-            className="vm-cloud absolute inset-x-[-6%] top-0 w-[112%] h-[58%]"
-            viewBox="0 0 1200 220"
-            preserveAspectRatio="xMidYMin slice"
-          >
-            <g
-              fill={theme.weatherScene === 'thunder' ? '#0f172a' : '#e2e8f0'}
-              fillOpacity={theme.weatherScene === 'thunder' ? 0.55 : 0.16}
-            >
-              <ellipse cx="220" cy="65" rx="150" ry="38" />
-              <ellipse cx="320" cy="52" rx="115" ry="34" />
-              <ellipse cx="860" cy="76" rx="170" ry="42" />
-              <ellipse cx="970" cy="60" rx="120" ry="34" />
-            </g>
-          </svg>
-        )}
-
-        {/* Thunder bolt + subtle flash */}
-        {theme.weatherScene === 'thunder' && (
-          <>
-            <div className="vm-thunder absolute inset-0 bg-indigo-100" />
-            <svg
-              className="absolute right-[24%] top-[18%] w-10 h-24 text-amber-200/75"
-              viewBox="0 0 40 100"
-            >
-              <polygon
-                points="22,4 8,50 20,50 14,92 34,42 22,42"
-                fill="currentColor"
-              />
-            </svg>
-          </>
-        )}
-
-        {/* Frosted fog mist layers */}
-        {(theme.weatherScene === 'fog' || theme.hazeOpacity >= 0.4) && (
-          <>
-            <div
-              className="vm-fog-layer absolute inset-x-[-10%] bottom-[20%] h-36"
-              style={{
-                background: `radial-gradient(ellipse 60% 50% at 50% 50%, ${
-                  theme.weatherScene === 'fog'
-                    ? 'rgba(241, 245, 249, 0.28)'
-                    : theme.hazeColor
-                } 0%, transparent 75%)`,
-                opacity:
-                  theme.weatherScene === 'fog' ? 0.78 : theme.hazeOpacity * 0.85,
-              }}
-            />
-            <div
-              className="vm-fog-layer absolute inset-x-[-12%] bottom-[4%] h-40"
-              style={{
-                background: `radial-gradient(ellipse 65% 55% at 50% 50%, ${
-                  theme.weatherScene === 'fog'
-                    ? 'rgba(226, 232, 240, 0.3)'
-                    : theme.hazeColor
-                } 0%, transparent 75%)`,
-                animationDelay: '-6s',
-                opacity:
-                  theme.weatherScene === 'fog' ? 0.82 : theme.hazeOpacity * 0.9,
-              }}
-            />
-          </>
-        )}
-
-        {/* Original 3-layer SVG city skyline with gentle scroll & tilt parallax */}
+      {/* Cloudy / Thunder cloud silhouettes */}
+      {(theme.weatherScene === 'cloudy' ||
+        theme.weatherScene === 'rain' ||
+        theme.weatherScene === 'thunder') && (
         <svg
-          className="absolute bottom-0 inset-x-[-3%] w-[106%] h-[66%] min-h-[190px] text-slate-950 vm-theme-transition"
-          viewBox="0 0 1200 340"
-          preserveAspectRatio="xMidYMax slice"
+          width="1200"
+          height="220"
+          className="vm-cloud absolute inset-x-[-6%] top-0 w-[112%] h-[58%]"
+          viewBox="0 0 1200 220"
+          preserveAspectRatio="xMidYMin slice"
         >
-          {/* Far ridge + distant high-rises fading into PM2.5 haze */}
           <g
-            fill="currentColor"
-            fillOpacity={farLayerOpacity}
-            style={{
-              transform: `translate3d(${(effectiveParallax.x * 0.35).toFixed(1)}px, ${(effectiveParallax.y * 0.3).toFixed(1)}px, 0)`,
-            }}
+            fill={theme.weatherScene === 'thunder' ? '#0f172a' : '#e2e8f0'}
+            fillOpacity={theme.weatherScene === 'thunder' ? 0.55 : 0.16}
           >
-            <path d="M0 340 L0 266 Q180 240 360 262 T740 248 T1200 268 L1200 340 Z" />
-            <rect x="65" y="218" width="38" height="122" />
-            <rect x="112" y="198" width="32" height="142" />
-            <rect x="280" y="210" width="44" height="130" />
-            <rect x="450" y="204" width="36" height="136" />
-            <rect x="742" y="192" width="48" height="148" />
-            <rect x="944" y="212" width="42" height="128" />
-            <rect x="1090" y="202" width="46" height="138" />
-          </g>
-
-          {/* Mid layer with city-specific Indian landmark silhouettes */}
-          <g
-            stroke="rgba(255,255,255,0.14)"
-            strokeWidth="1"
-            style={{
-              transform: `translate3d(${(effectiveParallax.x * 0.7).toFixed(1)}px, ${(effectiveParallax.y * 0.55).toFixed(1)}px, 0)`,
-            }}
-          >
-            <LandmarkMidLayer cityKey={cityKey} />
-          </g>
-
-          {/* Foreground urban rooftops */}
-          <g
-            fill="currentColor"
-            fillOpacity="0.92"
-            style={{
-              transform: `translate3d(${effectiveParallax.x.toFixed(1)}px, ${(effectiveParallax.y * 0.85).toFixed(1)}px, 0)`,
-            }}
-          >
-            <path d="M0 340 L0 310 L68 310 L68 296 L124 296 L124 316 L210 316 L210 302 L276 302 L276 318 L392 318 L392 298 L452 298 L452 320 L560 320 L560 305 L635 305 L635 318 L754 318 L754 294 L828 294 L828 316 L932 316 L932 304 L1022 304 L1022 320 L1118 320 L1118 300 L1200 300 L1200 340 Z" />
+            <ellipse cx="220" cy="65" rx="150" ry="38" />
+            <ellipse cx="320" cy="52" rx="115" ry="34" />
+            <ellipse cx="860" cy="76" rx="170" ry="42" />
+            <ellipse cx="970" cy="60" rx="120" ry="34" />
           </g>
         </svg>
-      </div>
-    );
-  }
-);
+      )}
+
+      {/* Thunder bolt + subtle flash */}
+      {theme.weatherScene === 'thunder' && (
+        <>
+          <div className="vm-thunder absolute inset-0 bg-indigo-100" />
+          <svg
+            width="40"
+            height="100"
+            className="absolute right-[24%] top-[18%] w-10 h-24 text-amber-200/75"
+            viewBox="0 0 40 100"
+          >
+            <polygon points="22,4 8,50 20,50 14,92 34,42 22,42" fill="currentColor" />
+          </svg>
+        </>
+      )}
+
+      {/* Frosted fog mist layers */}
+      {(theme.weatherScene === 'fog' || theme.hazeOpacity >= 0.4) && (
+        <>
+          <div
+            className="vm-fog-layer absolute inset-x-[-10%] bottom-[20%] h-36"
+            style={{
+              background: `radial-gradient(ellipse 60% 50% at 50% 50%, ${
+                theme.weatherScene === 'fog'
+                  ? 'rgba(241, 245, 249, 0.28)'
+                  : theme.hazeColor
+              } 0%, transparent 75%)`,
+              opacity: theme.weatherScene === 'fog' ? 0.78 : theme.hazeOpacity * 0.85,
+            }}
+          />
+          <div
+            className="vm-fog-layer absolute inset-x-[-12%] bottom-[4%] h-40"
+            style={{
+              background: `radial-gradient(ellipse 65% 55% at 50% 50%, ${
+                theme.weatherScene === 'fog'
+                  ? 'rgba(226, 232, 240, 0.3)'
+                  : theme.hazeColor
+              } 0%, transparent 75%)`,
+              animationDelay: '-6s',
+              opacity: theme.weatherScene === 'fog' ? 0.82 : theme.hazeOpacity * 0.9,
+            }}
+          />
+        </>
+      )}
+
+      {/* Original 3-layer SVG city skyline with gentle scroll & tilt parallax */}
+      <svg
+        width="1200"
+        height="340"
+        className="absolute bottom-0 inset-x-[-3%] w-[106%] h-[66%] min-h-[190px] text-slate-950 vm-theme-transition"
+        viewBox="0 0 1200 340"
+        preserveAspectRatio="xMidYMax slice"
+      >
+        {/* Far ridge + distant high-rises fading into PM2.5 haze */}
+        <g
+          fill="currentColor"
+          fillOpacity={farLayerOpacity}
+          style={{
+            transform: `translate3d(${(effectiveParallax.x * 0.35).toFixed(1)}px, ${(effectiveParallax.y * 0.3).toFixed(1)}px, 0)`,
+          }}
+        >
+          <path d="M0 340 L0 266 Q180 240 360 262 T740 248 T1200 268 L1200 340 Z" />
+          <rect x="65" y="218" width="38" height="122" />
+          <rect x="112" y="198" width="32" height="142" />
+          <rect x="280" y="210" width="44" height="130" />
+          <rect x="450" y="204" width="36" height="136" />
+          <rect x="742" y="192" width="48" height="148" />
+          <rect x="944" y="212" width="42" height="128" />
+          <rect x="1090" y="202" width="46" height="138" />
+        </g>
+
+        {/* Mid layer with city-specific Indian landmark silhouettes */}
+        <g
+          stroke="rgba(255,255,255,0.14)"
+          strokeWidth="1"
+          style={{
+            transform: `translate3d(${(effectiveParallax.x * 0.7).toFixed(1)}px, ${(effectiveParallax.y * 0.55).toFixed(1)}px, 0)`,
+          }}
+        >
+          <LandmarkMidLayer cityKey={cityKey} />
+        </g>
+
+        {/* Foreground urban rooftops */}
+        <g
+          fill="currentColor"
+          fillOpacity="0.92"
+          style={{
+            transform: `translate3d(${effectiveParallax.x.toFixed(1)}px, ${(effectiveParallax.y * 0.85).toFixed(1)}px, 0)`,
+          }}
+        >
+          <path d="M0 340 L0 310 L68 310 L68 296 L124 296 L124 316 L210 316 L210 302 L276 302 L276 318 L392 318 L392 298 L452 298 L452 320 L560 320 L560 305 L635 305 L635 318 L754 318 L754 294 L828 294 L828 316 L932 316 L932 304 L1022 304 L1022 320 L1118 320 L1118 300 L1200 300 L1200 340 Z" />
+        </g>
+      </svg>
+    </div>
+  );
+});
 
 HeroSkylineScene.displayName = 'HeroSkylineScene';
 

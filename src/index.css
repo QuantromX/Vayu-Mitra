@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --font-display: 'Sora', system-ui, -apple-system, sans-serif;
@@ -74,7 +74,8 @@ body {
 .vm-glass-card {
   position: relative;
   border-radius: var(--vm-radius-card);
-  background: linear-gradient(
+  background:
+    linear-gradient(
       155deg,
       rgba(255, 255, 255, 0.085) 0%,
       rgba(255, 255, 255, 0.02) 100%
@@ -91,8 +92,12 @@ body {
   background-image:
     radial-gradient(rgba(255, 255, 255, 0.055) 0.65px, transparent 0.65px),
     radial-gradient(rgba(0, 0, 0, 0.08) 0.65px, transparent 0.65px);
-  background-size: 4px 4px, 5px 5px;
-  background-position: 0 0, 2px 2px;
+  background-size:
+    4px 4px,
+    5px 5px;
+  background-position:
+    0 0,
+    2px 2px;
 }
 
 /* Shimmer loader */
@@ -234,5 +239,26 @@ body {
   .vm-disclosure-grid {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --vm-surface-glass: rgba(2, 6, 23, 0.94);
+    --vm-surface-elevated: rgba(2, 6, 23, 0.98);
+    --vm-border-glass: rgba(255, 255, 255, 0.68);
+    --vm-scrim: rgba(0, 0, 0, 0.85);
+    --vm-text-secondary: #ffffff;
+    --vm-text-muted: #f1f5f9;
+  }
+
+  .vm-glass-card {
+    border-width: 1.5px;
+    border-color: rgba(255, 255, 255, 0.72);
+  }
+
+  :focus-visible {
+    outline: 3px solid #ffffff !important;
+    outline-offset: 2px !important;
   }
 }

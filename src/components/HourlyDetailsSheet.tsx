@@ -52,6 +52,7 @@ const HourlyDetailsSheet: React.FC<HourlyDetailsSheetProps> = ({
         if (focusables.length === 0) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
+        if (!first || !last) return;
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault();
           last.focus();
@@ -71,11 +72,7 @@ const HourlyDetailsSheet: React.FC<HourlyDetailsSheetProps> = ({
 
   if (!open || !scrubbed) return null;
 
-  const dayWord = hi
-    ? scrubbed.dayLabel === 'Today'
-      ? 'आज'
-      : 'कल'
-    : scrubbed.dayLabel;
+  const dayWord = hi ? (scrubbed.dayLabel === 'Today' ? 'आज' : 'कल') : scrubbed.dayLabel;
   const catLabel = hi ? CATEGORY_HINDI[scrubbed.category] : scrubbed.category;
 
   return (
@@ -201,9 +198,7 @@ const HourlyDetailsSheet: React.FC<HourlyDetailsSheetProps> = ({
           </div>
         </dl>
 
-        <p className="text-xs text-slate-200 leading-relaxed">
-          {scrubbed.verdictLine}
-        </p>
+        <p className="text-xs text-slate-200 leading-relaxed">{scrubbed.verdictLine}</p>
 
         {/* Hour stepping inside sheet */}
         <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/15">

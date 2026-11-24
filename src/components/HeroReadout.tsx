@@ -11,12 +11,13 @@ import {
   ShieldAlert,
   ShieldCheck,
   Skull,
+  WifiOff,
 } from 'lucide-react';
 import { NAQI_CATEGORY_RANGES } from '../lib/naqi/naqi';
+import { CATEGORY_HINDI } from '../lib/shared/domain';
 import type {
   CityLocation,
   Language,
-  NaqiCategory,
   NaqiResult,
   ScrubbedHourState,
   ThemeTokens,
@@ -25,6 +26,8 @@ import type {
 import { AqiRingGauge } from './AqiRingGauge';
 import { HeroSkylineScene } from './SkylineBackdrop';
 
+export { CATEGORY_HINDI };
+
 interface HeroReadoutProps {
   city: CityLocation;
   naqi: NaqiResult | null;
@@ -32,21 +35,13 @@ interface HeroReadoutProps {
   theme: ThemeTokens;
   loading: boolean;
   lastUpdated: Date | null;
+  isOfflineData?: boolean;
   language: Language;
   sharing: boolean;
   shareNotice: string | null;
   onRefresh: () => void;
   onShareCard: () => void;
 }
-
-export const CATEGORY_HINDI: Record<NaqiCategory, string> = {
-  Good: 'अच्छी',
-  Satisfactory: 'संतोषजनक',
-  Moderate: 'मध्यम',
-  Poor: 'खराब',
-  'Very Poor': 'बहुत खराब',
-  Severe: 'गंभीर',
-};
 
 function CategoryIcon({
   icon,
@@ -89,6 +84,7 @@ export const HeroReadout: React.FC<HeroReadoutProps> = React.memo(
     theme,
     loading,
     lastUpdated,
+    isOfflineData = false,
     language,
     sharing,
     shareNotice,
@@ -212,15 +208,15 @@ export const HeroReadout: React.FC<HeroReadoutProps> = React.memo(
                     className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
                     aria-hidden="true"
                   />
-                  <span className="hidden sm:inline">
-                    {hi ? 'रीफ़्रेश' : 'Refresh'}
-                  </span>
+                  <span className="hidden sm:inline">{hi ? 'रीफ़्रेश' : 'Refresh'}</span>
                 </button>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-200">
-              <span>{hi ? 'भारत वायु सूचकांक अनुमान' : naqi?.label ?? 'NAQI-style estimate'}</span>
+              <span>
+                {hi ? 'भारत वायु सूचकांक अनुमान' : (naqi?.label ?? 'NAQI-style estimate')}
+              </span>
               <span aria-hidden="true">·</span>
               <span>
                 {scrubbed && !scrubbed.isLive
@@ -237,6 +233,15 @@ export const HeroReadout: React.FC<HeroReadoutProps> = React.memo(
               </span>
               <span aria-hidden="true">·</span>
               <span>{hi ? 'डेटा: Open-Meteo' : 'Data: Open-Meteo'}</span>
+              {isOfflineData && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-300 text-slate-950 font-bold">
+                    <WifiOff className="w-3 h-3" aria-hidden="true" />
+                    <span>{hi ? 'ऑफ़लाइन' : 'Offline'}</span>
+                  </span>
+                </>
+              )}
               {formattedUpdated && (
                 <>
                   <span aria-hidden="true">·</span>
@@ -258,7 +263,10 @@ export const HeroReadout: React.FC<HeroReadoutProps> = React.memo(
 
           {/* Centerpiece: Animated AQI Ring Gauge + Category + Verdict Pill + Cleanest Window */}
           {loading && !naqi ? (
-            <div className="py-4 flex flex-col sm:flex-row items-center gap-6" aria-busy="true">
+            <div
+              className="py-4 flex flex-col sm:flex-row items-center gap-6"
+              aria-busy="true"
+            >
               <div className="w-[172px] h-[172px] rounded-full vm-shimmer border border-white/15 shrink-0" />
               <div className="space-y-3 flex-1 w-full">
                 <div className="h-8 w-44 rounded-xl vm-shimmer" />
@@ -298,9 +306,7 @@ export const HeroReadout: React.FC<HeroReadoutProps> = React.memo(
                           aria-expanded={rangesOpen}
                           aria-controls="naqi-ranges-tooltip"
                           aria-label={
-                            hi
-                              ? 'वायु सूचकांक श्रेणी सीमाएँ देखें'
-                              : 'View NAQI category ranges'
+                            hi ? 'वायु सूचकांक श्रेणी सीमाएँ देखें' : 'View NAQI category ranges'
                           }
                           className="min-h-[44px] min-w-[44px] -my-2 inline-flex items-center justify-center rounded-lg text-slate-200 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >

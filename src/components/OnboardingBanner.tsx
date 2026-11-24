@@ -59,7 +59,8 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
 }) => {
   const hi = language === 'hi';
   const [step, setStep] = useState(0);
-  const current = STEPS[step];
+  const current = STEPS[step] ?? STEPS[0];
+  if (!current) return null;
 
   return (
     <aside
@@ -68,7 +69,13 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
     >
       <div className="flex items-center gap-3.5 min-w-0">
         {/* Original lightweight SVG onboarding illustration */}
-        <svg viewBox="0 0 48 48" className="w-11 h-11 shrink-0" aria-hidden="true">
+        <svg
+          width="44"
+          height="44"
+          viewBox="0 0 48 48"
+          className="w-11 h-11 shrink-0"
+          aria-hidden="true"
+        >
           <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.08)" />
           <circle cx="20" cy="18" r="5" fill={theme.sunColor} />
           <path
@@ -83,9 +90,7 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-semibold text-white">
             <span>{hi ? current.hiTitle : current.enTitle}</span>
-            <span className="font-mono-tabular text-slate-300">
-              ({step + 1}/3)
-            </span>
+            <span className="font-mono-tabular text-slate-300">({step + 1}/3)</span>
           </div>
           <p className="text-xs text-slate-200 mt-0.5 leading-relaxed">
             {hi ? current.hiBody : current.enBody}
@@ -116,13 +121,7 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
           className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white text-slate-950 text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-slate-100 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <span>
-            {step < STEPS.length - 1
-              ? hi
-                ? 'अगला'
-                : 'Next'
-              : hi
-                ? 'शुरू करें'
-                : 'Got it'}
+            {step < STEPS.length - 1 ? (hi ? 'अगला' : 'Next') : hi ? 'शुरू करें' : 'Got it'}
           </span>
           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
         </button>

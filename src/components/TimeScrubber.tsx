@@ -1,11 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import {
-  CheckCircle2,
-  Clock,
-  Flame,
-  Info,
-  RotateCcw,
-} from 'lucide-react';
+import { CheckCircle2, Clock, Flame, Info, RotateCcw } from 'lucide-react';
 import { triggerHapticTap } from '../lib/advice/progress';
 import type {
   HourWindow,
@@ -151,6 +145,9 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
           : 'Lowest-AQI:';
 
     const activePoint = hourly[activeIndex] ?? hourly[0];
+    if (!activePoint) {
+      return null;
+    }
     const announcement = scrubbed
       ? hi
         ? `${dayLabelText(scrubbed.dayLabel, true)} ${scrubbed.hourLabel}: वायु सूचकांक ${scrubbed.aqi}, ${scrubbed.verdictLabel}। ${scrubbed.verdictLine}`
@@ -159,9 +156,7 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
 
     return (
       <section
-        aria-label={
-          hi ? '24 घंटे टाइम स्क्रबर' : 'Next 24 hours forward time scrubber'
-        }
+        aria-label={hi ? '24 घंटे टाइम स्क्रबर' : 'Next 24 hours forward time scrubber'}
         className="vm-glass-card rounded-[24px] p-5 sm:p-6 space-y-4"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -218,8 +213,8 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
               <span>
                 {cleanWord}{' '}
                 <strong className="font-mono-tabular text-white">
-                  {dayLabelText(cleanestWindow.dayLabel, hi)}{' '}
-                  {cleanestWindow.startHour}–{cleanestWindow.endHour}
+                  {dayLabelText(cleanestWindow.dayLabel, hi)} {cleanestWindow.startHour}–
+                  {cleanestWindow.endHour}
                 </strong>
               </span>
             </span>
@@ -230,8 +225,8 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
               <span>
                 {hi ? 'अधिकतम धुंध:' : 'Peak:'}{' '}
                 <strong className="font-mono-tabular text-white">
-                  {dayLabelText(worstWindow.dayLabel, hi)}{' '}
-                  {worstWindow.startHour}–{worstWindow.endHour}
+                  {dayLabelText(worstWindow.dayLabel, hi)} {worstWindow.startHour}–
+                  {worstWindow.endHour}
                 </strong>
               </span>
             </span>
@@ -303,7 +298,9 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
                 <span className="flex-1 w-full flex items-end px-[1px]">
                   <span
                     className={`w-full rounded-t-md transition-transform duration-150 origin-bottom ${
-                      isSelected ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-950' : ''
+                      isSelected
+                        ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-950'
+                        : ''
                     }`}
                     style={{
                       height: `${heightPct}%`,
@@ -341,7 +338,9 @@ export const TimeScrubber: React.FC<TimeScrubberProps> = React.memo(
           <div className="flex flex-wrap items-center gap-3 font-mono-tabular">
             <span>
               {hi ? 'वायु सूचकांक' : 'NAQI'}{' '}
-              <strong className="text-white">{scrubbed?.aqi ?? activePoint.naqi ?? '—'}</strong>
+              <strong className="text-white">
+                {scrubbed?.aqi ?? activePoint.naqi ?? '—'}
+              </strong>
             </span>
             <span aria-hidden="true">·</span>
             <span>

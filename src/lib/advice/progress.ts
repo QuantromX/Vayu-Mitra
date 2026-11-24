@@ -35,7 +35,10 @@ export function collectPlanActionIds(advice: AdviceResponse | null): string[] {
  */
 export function buildPlanStorageKey(cityName: string, now = new Date()): string {
   const istDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const slug = cityName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = cityName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-');
   return `${PROGRESS_STORAGE_PREFIX}${istDate}:${slug || 'city'}`;
 }
 

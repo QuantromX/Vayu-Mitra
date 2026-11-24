@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildActionId,
   buildPlanStorageKey,
   collectPlanActionIds,
   computePlanProgress,
+  loadCompletedActions,
+  saveCompletedActions,
   toggleActionDone,
+  triggerHapticTap,
 } from '../advice/progress.ts';
 import {
   computeScrubbedHourState,
@@ -12,8 +15,18 @@ import {
   getVerdictPill,
   getVerdictPillLabel,
 } from '../naqi/scrubber.ts';
-import { buildShareCardSpec } from '../share/shareCard.ts';
+import {
+  DEFAULT_PROFILE,
+  loadSavedProfile,
+  saveProfileToStorage,
+} from '../profiles/samples.ts';
+import {
+  buildShareCardSpec,
+  renderShareCardBlob,
+  shareOrDownloadAirCard,
+} from '../share/shareCard.ts';
 import { resolveThemeTokens } from '../theme/theme.ts';
+import { stripExifFromImage } from '../vision/exifStrip.ts';
 import type { AdviceResponse, NaqiResult, WeatherData } from '../../types/index.ts';
 
 const MOCK_NAQI: NaqiResult = {
@@ -116,14 +129,25 @@ const MOCK_ADVICE: AdviceResponse = {
     why: 'Fine PM2.5 rises sharply after sunset.',
   },
   outdoor: [
-    { action: 'Schedule walks between 14:00 and 17:00', timeWindow: '14:00–17:00', why: 'Lower dispersion peak' },
+    {
+      action: 'Schedule walks between 14:00 and 17:00',
+      timeWindow: '14:00–17:00',
+      why: 'Lower dispersion peak',
+    },
     { action: 'Avoid roadside jogging near traffic', why: 'Exhaust concentration' },
   ],
   indoor: [
-    { action: 'Run HEPA purifier in bedrooms after 19:00', why: 'Evening inversion traps smoke' },
+    {
+      action: 'Run HEPA purifier in bedrooms after 19:00',
+      why: 'Evening inversion traps smoke',
+    },
   ],
   routine: [
-    { action: 'Batch evening errands into one metro trip', co2Benefit: 'Approx. 1.4 kg CO2 saved', why: 'Lower exposure and tailpipe dust' },
+    {
+      action: 'Batch evening errands into one metro trip',
+      co2Benefit: 'Approx. 1.4 kg CO2 saved',
+      why: 'Lower exposure and tailpipe dust',
+    },
   ],
   forWhom: [{ group: 'Kids', advice: 'Move evening play indoors after 19:00.' }],
   disclaimer: 'Informational guidance only.',
@@ -265,5 +289,203 @@ describe('Share Air Card data builder', () => {
     expect(spec.topActions.length).toBe(2);
     expect(spec.attribution).toContain('Open-Meteo');
     expect(spec.altText).toContain('Mysuru');
+  });
+});
+
+describe('Storage helpers, Share Card canvas rendering, and EXIF stripper', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('persists and loads completed actions and user profiles safely in localStorage', () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          store.set(k, v);
+        },
+      },
+      setTimeout: globalThis.setTimeout,
+    });
+    vi.stubGlobal('navigator', {
+      vibrate: vi.fn(),
+    });
+
+    expect(saveCompletedActions('k1', ['outdoor:0', 'indoor:0'])).toBe(true);
+    expect(loadCompletedActions('k1')).toEqual(['outdoor:0', 'indoor:0']);
+    triggerHapticTap(10);
+
+    const customProfile = {
+      ...DEFAULT_PROFILE,
+      language: 'hi' as const,
+      hasPurifier: false,
+    };
+    expect(saveProfileToStorage(customProfile)).toBe(true);
+    expect(loadSavedProfile()).toEqual(customProfile);
+
+    // Corrupted JSON falls back cleanly
+    store.set('vayumitra_user_profile_v1', '{bad-json');
+    expect(loadSavedProfile()).toEqual(DEFAULT_PROFILE);
+  });
+
+  it('renders Share Air Card PNG blob and triggers download/Web Share flows', async () => {
+    const mockGrad = { addColorStop: vi.fn() };
+    const mockCtx = {
+      createLinearGradient: () => mockGrad,
+      createRadialGradient: () => mockGrad,
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      arc: vi.fn(),
+      closePath: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillText: vi.fn(),
+      measureText: (txt: string) => ({ width: txt.length * 10 }),
+      drawImage: vi.fn(),
+    };
+    const fakeBlob = new Blob(['png-bytes'], { type: 'image/png' });
+    const fakeAnchor = {
+      href: '',
+      download: '',
+      click: vi.fn(),
+    };
+    vi.stubGlobal('document', {
+      createElement: (tag: string) => {
+        if (tag === 'a') return fakeAnchor;
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => mockCtx,
+          toBlob: (cb: (b: Blob | null) => void) => cb(fakeBlob),
+        };
+      },
+      body: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+      },
+    });
+    vi.stubGlobal('window', { setTimeout: globalThis.setTimeout });
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:air-card'),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.stubGlobal('navigator', {});
+
+    const theme = resolveThemeTokens({
+      category: 'Moderate',
+      weatherCode: 2,
+      isDay: true,
+      pm25: 79,
+    });
+    const spec = buildShareCardSpec({
+      cityName: 'Delhi',
+      aqi: 165,
+      categoryLabel: 'Moderate',
+      verdictLabel: 'CAUTION',
+      verdictHeadline: MOCK_ADVICE.verdict.headline,
+      advice: MOCK_ADVICE,
+      theme,
+      updatedLabel: '13:00 IST',
+      language: 'en',
+    });
+
+    const rendered = await renderShareCardBlob(spec);
+    expect(rendered.type).toBe('image/png');
+
+    const downloadRes = await shareOrDownloadAirCard(spec);
+    expect(downloadRes).toBe('downloaded');
+    expect(fakeAnchor.click).toHaveBeenCalledTimes(1);
+
+    // Web Share API path
+    vi.stubGlobal('navigator', {
+      canShare: () => true,
+      share: vi.fn(async () => undefined),
+    });
+    const sharedRes = await shareOrDownloadAirCard(spec);
+    expect(sharedRes).toBe('shared');
+  });
+
+  it('strips EXIF via canvas re-encoding cleanly', async () => {
+    const mockCtx = { drawImage: vi.fn() };
+    const cleanBlob = new Blob(['clean-jpeg'], { type: 'image/jpeg' });
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        width: 0,
+        height: 0,
+        getContext: () => mockCtx,
+        toBlob: (cb: (b: Blob | null) => void) => cb(cleanBlob),
+      }),
+    });
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    });
+
+    class MockImage {
+      naturalWidth = 2400;
+      naturalHeight = 1200;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_value: string) {
+        this.onload?.();
+      }
+    }
+    class MockFileReader {
+      result: string | null = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==';
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      readAsDataURL() {
+        this.onload?.();
+      }
+    }
+
+    vi.stubGlobal('Image', MockImage);
+    vi.stubGlobal('FileReader', MockFileReader);
+
+    const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], 'room.jpg', {
+      type: 'image/jpeg',
+    });
+    const stripped = await stripExifFromImage(file);
+    expect(stripped.mimeType).toBe('image/jpeg');
+    expect(stripped.imageBase64).toBe('/9j/4AAQSkZJRgABAQ==');
+    expect(stripped.previewUrl).toBe('blob:mock-preview');
+  });
+
+  it('handles ValidationError, RateLimitError, and malformed stored coordinates safely', async () => {
+    const { ValidationError, RateLimitError } = await import('../errors.ts');
+    const vErr = new ValidationError('Invalid coordinate range', [
+      'latitude out of bounds',
+    ]);
+    expect(vErr.statusCode).toBe(400);
+    expect(vErr.code).toBe('VALIDATION_ERROR');
+    expect(vErr.details).toEqual(['latitude out of bounds']);
+
+    const rErr = new RateLimitError('Slow down', 30);
+    expect(rErr.statusCode).toBe(429);
+    expect(rErr.code).toBe('RATE_LIMIT_ERROR');
+    expect(rErr.retryAfterSec).toBe(30);
+
+    const store = new Map<string, string>();
+    store.set(
+      'vayumitra_user_profile_v1',
+      JSON.stringify({
+        ...DEFAULT_PROFILE,
+        city: { ...DEFAULT_PROFILE.city, latitude: 'bad' },
+      })
+    );
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          store.set(k, v);
+        },
+      },
+    });
+    expect(loadSavedProfile()).toEqual(DEFAULT_PROFILE);
   });
 });

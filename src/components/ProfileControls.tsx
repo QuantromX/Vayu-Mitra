@@ -1,12 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { SAMPLE_PROFILES } from '../lib/profiles/samples';
-import type {
-  CityLocation,
-  HouseholdGroup,
-  LifestyleMode,
-  UserProfile,
-} from '../types';
+import type { CityLocation, HouseholdGroup, LifestyleMode, UserProfile } from '../types';
 import { CitySearch } from './CitySearch';
 
 interface ProfileControlsProps {
@@ -66,10 +61,7 @@ export const ProfileControls: React.FC<ProfileControlsProps> = ({
   useEffect(() => {
     if (!sampleMenuOpen) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (
-        sampleMenuRef.current &&
-        !sampleMenuRef.current.contains(e.target as Node)
-      ) {
+      if (sampleMenuRef.current && !sampleMenuRef.current.contains(e.target as Node)) {
         setSampleMenuOpen(false);
       }
     };
@@ -97,9 +89,7 @@ export const ProfileControls: React.FC<ProfileControlsProps> = ({
       ? 'सामान्य परिवार'
       : 'General household';
 
-  const lifestyleObj = LIFESTYLE_OPTIONS.find(
-    (o) => o.id === profile.lifestyle
-  );
+  const lifestyleObj = LIFESTYLE_OPTIONS.find((o) => o.id === profile.lifestyle);
   const lifestyleLabel = lifestyleObj
     ? hi
       ? lifestyleObj.hi

@@ -1,10 +1,5 @@
 export type NaqiCategory =
-  | 'Good'
-  | 'Satisfactory'
-  | 'Moderate'
-  | 'Poor'
-  | 'Very Poor'
-  | 'Severe';
+  'Good' | 'Satisfactory' | 'Moderate' | 'Poor' | 'Very Poor' | 'Severe';
 
 export type WeatherConditionScene = 'clear' | 'cloudy' | 'fog' | 'rain' | 'thunder';
 
@@ -13,11 +8,7 @@ export type Language = 'en' | 'hi';
 export type VerdictPillLevel = 'GO' | 'CAUTION' | 'STAY IN';
 
 export type HouseholdGroup =
-  | 'kids'
-  | 'seniors'
-  | 'pregnant'
-  | 'asthma_heart'
-  | 'outdoor_worker';
+  'kids' | 'seniors' | 'pregnant' | 'asthma_heart' | 'outdoor_worker';
 
 export type LifestyleMode =
   | 'wfh'
@@ -240,4 +231,3 @@ export interface PhotoCheckResponse {
   disclaimer: string;
   source: 'gemini' | 'fallback';
 }
-

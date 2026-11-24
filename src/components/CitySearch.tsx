@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Loader2, MapPin, Search, X } from 'lucide-react';
+import { APP_CONFIG } from '../lib/config';
 import { searchIndianCities } from '../lib/api/openMeteo';
 import type { CityLocation, Language } from '../types';
 
@@ -19,6 +20,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({
   const hi = language === 'hi';
   const listboxId = useId();
   const inputId = useId();
+  const errorId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [query, setQuery] = useState('');
@@ -45,9 +47,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({
         setActiveIndex(items.length > 0 ? 0 : -1);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
-        setError(
-          hi ? 'शहर खोजने में समस्या आई।' : 'Unable to search cities right now.'
-        );
+        setError(hi ? 'शहर खोजने में समस्या आई।' : 'Unable to search cities right now.');
         setResults([]);
       } finally {
         setLoading(false);
@@ -62,10 +62,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
@@ -92,9 +89,12 @@ export const CitySearch: React.FC<CitySearchProps> = ({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex((prev) => (prev - 1 + results.length) % results.length);
-    } else if (e.key === 'Enter' && activeIndex >= 0 && results[activeIndex]) {
-      e.preventDefault();
-      commitSelection(results[activeIndex]);
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      const selected = results[activeIndex];
+      if (selected) {
+        e.preventDefault();
+        commitSelection(selected);
+      }
     } else if (e.key === 'Escape') {
       e.preventDefault();
       setOpen(false);
@@ -120,9 +120,12 @@ export const CitySearch: React.FC<CitySearchProps> = ({
           id={inputId}
           type="text"
           role="combobox"
+          maxLength={APP_CONFIG.maxCityNameLength}
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? errorId : undefined}
           aria-activedescendant={
             open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined
           }
@@ -178,12 +181,12 @@ export const CitySearch: React.FC<CitySearchProps> = ({
           className="absolute z-50 left-0 right-0 mt-1.5 rounded-xl bg-slate-950/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
         >
           {error ? (
-            <div className="px-4 py-3 text-xs text-rose-200">{error}</div>
+            <div id={errorId} role="alert" className="px-4 py-3 text-xs text-rose-200">
+              {error}
+            </div>
           ) : results.length === 0 && !loading ? (
             <div className="px-4 py-3 text-xs text-slate-300">
-              {hi
-                ? 'कोई भारतीय शहर नहीं मिला।'
-                : 'No matching Indian cities found.'}
+              {hi ? 'कोई भारतीय शहर नहीं मिला।' : 'No matching Indian cities found.'}
             </div>
           ) : (
             results.map((city, idx) => {
@@ -202,12 +205,13 @@ export const CitySearch: React.FC<CitySearchProps> = ({
                       : 'text-slate-200 hover:bg-white/10'
                   }`}
                 >
-                  <MapPin className="w-4 h-4 shrink-0 text-slate-300" aria-hidden="true" />
+                  <MapPin
+                    className="w-4 h-4 shrink-0 text-slate-300"
+                    aria-hidden="true"
+                  />
                   <span className="truncate font-medium">{city.name}</span>
                   {city.admin1 && (
-                    <span className="text-xs text-slate-400 truncate">
-                      {city.admin1}
-                    </span>
+                    <span className="text-xs text-slate-400 truncate">{city.admin1}</span>
                   )}
                 </button>
               );

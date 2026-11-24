@@ -1,3 +1,4 @@
+import { hasMaskSensitiveGroup } from '../shared/domain.ts';
 import type {
   AirQualityData,
   HourWindow,
@@ -80,15 +81,20 @@ export function computeSubIndex(
   }
 
   const last = breakpoints[breakpoints.length - 1];
+  if (!last) {
+    return 0;
+  }
   if (concentration >= last.cHigh) {
     return 500;
   }
 
   for (let idx = 0; idx < breakpoints.length; idx++) {
     const bp = breakpoints[idx];
+    if (!bp) continue;
     if (concentration <= bp.cHigh) {
       if (concentration < bp.cLow && idx > 0) {
         const prev = breakpoints[idx - 1];
+        if (!prev) return bp.iLow;
         const ratio = (concentration - prev.cHigh) / (bp.cLow - prev.cHigh);
         return Math.round(prev.iHigh + ratio * (bp.iLow - prev.iHigh));
       }
@@ -165,13 +171,8 @@ export function evaluateMaskRule(
   }
 
   if (category === 'Moderate') {
-    const hasSensitiveGroup =
-      household.includes('kids') ||
-      household.includes('seniors') ||
-      household.includes('asthma_heart') ||
-      household.includes('outdoor_worker');
     return {
-      recommended: hasSensitiveGroup,
+      recommended: hasMaskSensitiveGroup(household),
       scope: 'sensitive_only',
       type: 'N95 / FFP2',
     };
@@ -216,6 +217,10 @@ export function computeForwardCleanestAndWorstWindows(
       continue;
     }
 
+    const first = slice[0];
+    const last = slice[slice.length - 1];
+    if (!first || !last) continue;
+
     const avgNaqi = Math.round(
       slice.reduce((acc, pt) => acc + (pt.naqi ?? 0), 0) / effectiveSize
     );
@@ -223,13 +228,9 @@ export function computeForwardCleanestAndWorstWindows(
       slice.reduce((acc, pt) => acc + (pt.pm2_5 ?? 0), 0) / effectiveSize
     );
 
-    const first = slice[0];
-    const last = slice[slice.length - 1];
     const endBoundary = addOneHourLabel(last.hourLabel);
     const endDayLabel: WindowDayLabel =
-      endBoundary.wrappedDay && last.dayLabel === 'Today'
-        ? 'Tomorrow'
-        : last.dayLabel;
+      endBoundary.wrappedDay && last.dayLabel === 'Today' ? 'Tomorrow' : last.dayLabel;
 
     const candidate: HourWindow = {
       startHour: first.hourLabel,
@@ -262,9 +263,7 @@ export function evaluateAirQuality(data: AirQualityData): NaqiResult {
   const currentHourPrefix = data.currentTime.slice(0, 13);
 
   // Locate current hour index
-  let currentIdx = data.hourly.findIndex((pt) =>
-    pt.time.startsWith(currentHourPrefix)
-  );
+  let currentIdx = data.hourly.findIndex((pt) => pt.time.startsWith(currentHourPrefix));
   if (currentIdx === -1) {
     currentIdx = data.hourly.reduce(
       (lastIdx, pt, idx) => (pt.time <= data.currentTime ? idx : lastIdx),

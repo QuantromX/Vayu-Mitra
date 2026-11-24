@@ -22,7 +22,12 @@ export const SAMPLE_PROFILES: readonly SampleProfile[] = [
   chennaiPregnant as SampleProfile,
 ];
 
-export const DEFAULT_PROFILE: UserProfile = SAMPLE_PROFILES[0].profile;
+const firstSample = SAMPLE_PROFILES[0];
+if (!firstSample) {
+  throw new Error('Sample household profiles failed to load');
+}
+
+export const DEFAULT_PROFILE: UserProfile = firstSample.profile;
 
 const STORAGE_KEY = 'vayumitra_user_profile_v1';
 

@@ -16,6 +16,7 @@ import {
   type PlanProgress,
   triggerHapticTap,
 } from '../lib/advice/progress';
+import { MEDICAL_DISCLAIMER } from '../lib/shared/domain';
 import type { AdviceResponse, Language, ThemeTokens } from '../types';
 
 interface AdviceSectionProps {
@@ -230,6 +231,8 @@ const PlanProgressRing: React.FC<{
       <div className="flex items-center gap-3.5 min-w-0">
         <div className="relative w-11 h-11 shrink-0 flex items-center justify-center">
           <svg
+            width="44"
+            height="44"
             viewBox="0 0 44 44"
             className="w-11 h-11 -rotate-90"
             aria-hidden="true"
@@ -290,15 +293,7 @@ export const VerdictAndMaskCard: React.FC<{
   theme: ThemeTokens;
   errorNotice: string | null;
   onRetryAdvice: () => void;
-}> = ({
-  advice,
-  loading,
-  revealStage,
-  language,
-  theme,
-  errorNotice,
-  onRetryAdvice,
-}) => {
+}> = ({ advice, loading, revealStage, language, theme, errorNotice, onRetryAdvice }) => {
   const hi = language === 'hi';
   const prefersReducedMotion = useReducedMotion();
   const [maskWhyOpen, setMaskWhyOpen] = useState(false);
@@ -371,7 +366,9 @@ export const VerdictAndMaskCard: React.FC<{
 
         <div
           className={`pt-4 border-t border-white/15 transition-all duration-200 ${
-            maskWhyOpen ? 'rounded-2xl bg-white/[0.05] p-3 -mx-3 ring-1 ring-white/25' : ''
+            maskWhyOpen
+              ? 'rounded-2xl bg-white/[0.05] p-3 -mx-3 ring-1 ring-white/25'
+              : ''
           }`}
         >
           <div className="flex items-start gap-3">
@@ -405,6 +402,10 @@ export const VerdictAndMaskCard: React.FC<{
             </div>
           </div>
         </div>
+
+        <p className="text-xs text-slate-300 pt-2 border-t border-white/10 leading-relaxed">
+          {MEDICAL_DISCLAIMER[language]}
+        </p>
       </motion.section>
     </div>
   );
@@ -462,8 +463,7 @@ export const AdviceCardsGrid: React.FC<
       ? {}
       : {
           initial: { opacity: 0, y: 14 },
-          animate:
-            revealStage >= stage ? { opacity: 1, y: 0 } : { opacity: 0.45, y: 8 },
+          animate: revealStage >= stage ? { opacity: 1, y: 0 } : { opacity: 0.45, y: 8 },
           transition: {
             duration: 0.28,
             delay: delaySec,
@@ -474,11 +474,7 @@ export const AdviceCardsGrid: React.FC<
   return (
     <div className="space-y-4">
       {planProgress && planProgress.total > 0 && (
-        <PlanProgressRing
-          progress={planProgress}
-          theme={theme}
-          language={language}
-        />
+        <PlanProgressRing progress={planProgress} theme={theme} language={language} />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -489,7 +485,11 @@ export const AdviceCardsGrid: React.FC<
           className="vm-glass-card rounded-[24px] p-5 sm:p-6 space-y-4"
         >
           <div className="flex items-center gap-2.5">
-            <Compass className="w-5 h-5" style={{ color: theme.accent }} aria-hidden="true" />
+            <Compass
+              className="w-5 h-5"
+              style={{ color: theme.accent }}
+              aria-hidden="true"
+            />
             <h3 className="font-display text-base font-semibold text-white">
               {hi ? 'बाहरी गतिविधियाँ' : 'Outdoor'}
             </h3>
@@ -526,7 +526,11 @@ export const AdviceCardsGrid: React.FC<
           className="vm-glass-card rounded-[24px] p-5 sm:p-6 space-y-4"
         >
           <div className="flex items-center gap-2.5">
-            <Home className="w-5 h-5" style={{ color: theme.accent }} aria-hidden="true" />
+            <Home
+              className="w-5 h-5"
+              style={{ color: theme.accent }}
+              aria-hidden="true"
+            />
             <h3 className="font-display text-base font-semibold text-white">
               {hi ? 'घर के अंदर' : 'Indoor'}
             </h3>
@@ -600,7 +604,11 @@ export const AdviceCardsGrid: React.FC<
           className="vm-glass-card rounded-[24px] p-5 sm:p-6 space-y-4"
         >
           <div className="flex items-center gap-2.5">
-            <Users className="w-5 h-5" style={{ color: theme.accent }} aria-hidden="true" />
+            <Users
+              className="w-5 h-5"
+              style={{ color: theme.accent }}
+              aria-hidden="true"
+            />
             <h3 className="font-display text-base font-semibold text-white">
               {hi ? 'किसके लिए विशेष ध्यान' : 'For Whom'}
             </h3>
@@ -608,12 +616,8 @@ export const AdviceCardsGrid: React.FC<
           <ul className="space-y-3 divide-y divide-white/10">
             {advice.forWhom.map((entry, idx) => (
               <li key={idx} className={idx > 0 ? 'pt-3' : ''}>
-                <div className="text-xs font-semibold text-slate-300">
-                  {entry.group}
-                </div>
-                <p className="text-sm text-white mt-0.5 leading-snug">
-                  {entry.advice}
-                </p>
+                <div className="text-xs font-semibold text-slate-300">{entry.group}</div>
+                <p className="text-sm text-white mt-0.5 leading-snug">{entry.advice}</p>
               </li>
             ))}
           </ul>
@@ -621,9 +625,7 @@ export const AdviceCardsGrid: React.FC<
       </div>
 
       {/* Health Disclaimer */}
-      <p className="text-xs text-slate-300 px-1 leading-relaxed">
-        {advice.disclaimer}
-      </p>
+      <p className="text-xs text-slate-300 px-1 leading-relaxed">{advice.disclaimer}</p>
     </div>
   );
 };

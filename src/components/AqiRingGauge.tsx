@@ -77,6 +77,8 @@ export const AqiRingGauge: React.FC<AqiRingGaugeProps> = React.memo(
     return (
       <div className="relative inline-flex items-center justify-center w-[172px] h-[172px] sm:w-[188px] sm:h-[188px] shrink-0">
         <svg
+          width={SIZE}
+          height={SIZE}
           viewBox={`0 0 ${SIZE} ${SIZE}`}
           className="w-full h-full overflow-visible"
           aria-hidden="true"

@@ -11,7 +11,8 @@ describe('Advice Zod Schemas & Deterministic Fallback', () => {
       verdict: {
         level: 'Poor',
         headline: 'Cut outdoor exertion; shift errands to Today 14:00–17:00',
-        summary: 'Fine particulate levels are elevated today; schedule errands in the afternoon.',
+        summary:
+          'Fine particulate levels are elevated today; schedule errands in the afternoon.',
       },
       outdoor: [
         {
@@ -30,7 +31,8 @@ describe('Advice Zod Schemas & Deterministic Fallback', () => {
         {
           action: 'Use the metro instead of a car for today’s commute.',
           why: 'Public transit avoids roadside tailpipe congestion and reduces personal exposure.',
-          co2Benefit: 'Approx. 1.4 kg CO₂ saved (assumes 10 km car at 170 g/km vs metro at 30 g/km)',
+          co2Benefit:
+            'Approx. 1.4 kg CO₂ saved (assumes 10 km car at 170 g/km vs metro at 30 g/km)',
         },
       ],
       mask: {
@@ -145,15 +147,19 @@ describe('Advice Zod Schemas & Deterministic Fallback', () => {
     // Never say "clean air" when category !== 'Good'
     expect(JSON.stringify(enAdvice).toLowerCase()).not.toContain('clean air');
     // Indoor guidance covers sealed room, cooking/exhaust, damp-mop, no incense/coils, and plants caveat
-    const indoorText = enAdvice.indoor.map((i) => `${i.action} ${i.why}`).join(' ').toLowerCase();
+    const indoorText = enAdvice.indoor
+      .map((i) => `${i.action} ${i.why}`)
+      .join(' ')
+      .toLowerCase();
     expect(indoorText).toContain('sealed');
     expect(indoorText).toContain('exhaust');
     expect(indoorText).toContain('incense');
     expect(indoorText).toContain('damp-mop');
     expect(indoorText).toContain('marginally');
     // Routine includes approx. CO2 assumption for car commute
-    expect(enAdvice.routine[0].co2Benefit?.toLowerCase()).toContain('approx.');
-    expect(GeminiAdvicePayloadSchema.safeParse(enAdvice).success).toBe(true);
+    expect(enAdvice.routine[0]?.co2Benefit?.toLowerCase()).toContain('approx.');
+    const { source: _enSource, disclaimer: _enDisclaimer, ...enGeminiShape } = enAdvice;
+    expect(GeminiAdvicePayloadSchema.safeParse(enGeminiShape).success).toBe(true);
 
     // Moderate mask rule: false for no sensitive group, true when senior present
     const moderateAdult = buildFallbackAdvice({
@@ -179,6 +185,7 @@ describe('Advice Zod Schemas & Deterministic Fallback', () => {
     expect(hiAdvice.source).toBe('fallback');
     expect(hiAdvice.verdict.summary).toContain('Patna');
     expect(hiAdvice.disclaimer).toContain('चिकित्सीय निदान');
-    expect(GeminiAdvicePayloadSchema.safeParse(hiAdvice).success).toBe(true);
+    const { source: _hiSource, disclaimer: _hiDisclaimer, ...hiGeminiShape } = hiAdvice;
+    expect(GeminiAdvicePayloadSchema.safeParse(hiGeminiShape).success).toBe(true);
   });
 });

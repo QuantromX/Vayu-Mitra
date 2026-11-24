@@ -1,11 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import {
-  Camera,
-  Loader2,
-  ShieldCheck,
-  Trash2,
-  Wind,
-} from 'lucide-react';
+import { Camera, Loader2, ShieldCheck, Trash2, Wind } from 'lucide-react';
+import { APP_CONFIG } from '../lib/config';
+import { MEDICAL_DISCLAIMER } from '../lib/shared/domain';
 import {
   stripExifFromImage,
   validatePhotoFile,
@@ -26,13 +22,9 @@ interface PhotoCheckCardProps {
   theme: ThemeTokens;
 }
 
-function confidenceLabel(
-  confidence: PhotoCheckConfidence,
-  hi: boolean
-): string {
+function confidenceLabel(confidence: PhotoCheckConfidence, hi: boolean): string {
   if (confidence === 'high') return hi ? 'विश्वसनीयता: उच्च' : 'Confidence: High';
-  if (confidence === 'medium')
-    return hi ? 'विश्वसनीयता: मध्यम' : 'Confidence: Medium';
+  if (confidence === 'medium') return hi ? 'विश्वसनीयता: मध्यम' : 'Confidence: Medium';
   return hi ? 'विश्वसनीयता: सीमित' : 'Confidence: Low';
 }
 
@@ -40,13 +32,10 @@ function confidenceLabel(
  * Gemini Vision Photo Check card: accepts JPEG/PNG/WebP up to 4 MB, strips all EXIF
  * metadata locally in the browser before upload, and displays visual ventilation & purifier cues.
  */
-const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
-  profile,
-  naqi,
-  theme,
-}) => {
+const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({ profile, naqi, theme }) => {
   const hi = profile.language === 'hi';
   const fileInputId = useId();
+  const errorId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [sceneHint, setSceneHint] = useState<PhotoSceneHint>('auto');
@@ -85,7 +74,7 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
 
     const check = validatePhotoFile(file);
     if (!check.valid) {
-      setError(hi ? check.errorHi ?? 'अमान्य फ़ोटो' : check.errorEn ?? 'Invalid image');
+      setError(hi ? (check.errorHi ?? 'अमान्य फ़ोटो') : (check.errorEn ?? 'Invalid image'));
       e.target.value = '';
       return;
     }
@@ -115,10 +104,14 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
     setAnalyzing(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), APP_CONFIG.geminiTimeoutMs);
+
     try {
       const response = await fetch('/api/photo-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           mimeType: stripped.mimeType,
           imageBase64: stripped.imageBase64,
@@ -145,14 +138,23 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
       const data = (await response.json()) as PhotoCheckResponse;
       setResult(data);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : hi
-            ? 'फ़ोटो विश्लेषण पूरा नहीं हो सका।'
-            : 'Could not complete photo check.'
-      );
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError(
+          hi
+            ? 'फ़ोटो जांच में समय सीमा समाप्त हो गई — कृपया पुनः प्रयास करें।'
+            : 'Photo inspection timed out — please retry.'
+        );
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : hi
+              ? 'फ़ोटो विश्लेषण पूरा नहीं हो सका।'
+              : 'Could not complete photo check.'
+        );
+      }
     } finally {
+      window.clearTimeout(timer);
       setAnalyzing(false);
     }
   };
@@ -243,6 +245,8 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             capture="environment"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? errorId : undefined}
             onChange={(e) => void handleFileChange(e)}
             className="sr-only"
           />
@@ -289,6 +293,8 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl bg-slate-950/55 border border-white/15 p-3">
           <img
             src={stripped.previewUrl}
+            width={96}
+            height={96}
             alt={
               hi
                 ? 'EXIF-मुक्त अपलोड की गई फ़ोटो का पूर्वावलोकन'
@@ -309,10 +315,13 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
         </div>
       )}
 
+      <p className="text-xs text-slate-300">{MEDICAL_DISCLAIMER[profile.language]}</p>
+
       {/* Status and structured output */}
       <div aria-live="polite" className="space-y-3">
         {error && (
           <div
+            id={errorId}
             role="alert"
             className="rounded-xl bg-rose-950/75 border border-rose-300/35 px-4 py-3 text-xs text-rose-100"
           >
@@ -370,9 +379,7 @@ const PhotoCheckCard: React.FC<PhotoCheckCardProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-amber-200 leading-relaxed">
-              {result.disclaimer}
-            </p>
+            <p className="text-xs text-amber-200 leading-relaxed">{result.disclaimer}</p>
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { formatDayLabel, hasMaskSensitiveGroup } from '../shared/domain.ts';
 import type {
   HouseholdGroup,
   Language,
@@ -20,20 +21,15 @@ export function getVerdictPill(
     return 'GO';
   }
   if (category === 'Moderate') {
-    const hasSensitive =
-      household.includes('kids') ||
-      household.includes('seniors') ||
-      household.includes('asthma_heart') ||
-      household.includes('outdoor_worker');
-    return hasSensitive ? 'CAUTION' : 'GO';
+    return hasMaskSensitiveGroup(household) ? 'CAUTION' : 'GO';
   }
   return 'STAY IN';
 }
 
-export function getVerdictPillLabel(
-  level: VerdictPillLevel,
-  language: Language
-): string {
+/**
+ * Returns the localized verdict pill text for English or Hindi UI rendering.
+ */
+export function getVerdictPillLabel(level: VerdictPillLevel, language: Language): string {
   if (language === 'en') return level;
   switch (level) {
     case 'GO':
@@ -87,8 +83,8 @@ export function buildVerdictHumanLine(params: {
 }): string {
   const { category, household, hourLabel, dayLabel, isLive, language } = params;
   const hi = language === 'hi';
-  const dayWord = hi ? (dayLabel === 'Today' ? 'आज' : 'कल') : dayLabel;
-  const timeSuffix = isLive ? '' : hi ? ` (${dayWord} ${hourLabel})` : ` (${dayWord} ${hourLabel})`;
+  const dayWord = formatDayLabel(dayLabel, language);
+  const timeSuffix = isLive ? '' : ` (${dayWord} ${hourLabel})`;
 
   if (category === 'Good') {
     return hi
@@ -164,7 +160,9 @@ export function computeScrubbedHourState(params: {
   const point = naqi.forwardHourly[clampedIdx];
 
   if (!point || isLive) {
-    const currentHr = Number((point?.hourLabel ?? weather.currentTime.slice(11, 13)).slice(0, 2));
+    const currentHr = Number(
+      (point?.hourLabel ?? weather.currentTime.slice(11, 13)).slice(0, 2)
+    );
     const arc = computeSunArcPosition(currentHr);
     const verdictPill = getVerdictPill(naqi.category, household);
     return {

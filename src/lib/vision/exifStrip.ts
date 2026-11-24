@@ -99,9 +99,7 @@ function blobToBase64(blob: Blob): Promise<string> {
  * Strips all EXIF/GPS/camera metadata client-side by redrawing the uploaded image
  * onto an offscreen canvas (capped at 1440px longest side) and exporting a clean Blob.
  */
-export async function stripExifFromImage(
-  file: File
-): Promise<StrippedPhotoPayload> {
+export async function stripExifFromImage(file: File): Promise<StrippedPhotoPayload> {
   const check = validatePhotoFile(file);
   if (!check.valid) {
     throw new Error(check.errorEn ?? 'Invalid image file.');

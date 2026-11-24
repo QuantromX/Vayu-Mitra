@@ -1,5 +1,14 @@
 import { z } from 'zod';
+import { APP_CONFIG, INDIA_BOUNDS } from '../config.ts';
 import { evaluateMaskRule } from '../naqi/naqi.ts';
+import {
+  CATEGORY_HINDI,
+  MEDICAL_DISCLAIMER,
+  formatDayLabel,
+  formatWindowLabel,
+  isPoorOrWorseCategory,
+  isWithinIndiaBounds,
+} from '../shared/domain.ts';
 import type {
   AdviceResponse,
   HourWindow,
@@ -7,7 +16,6 @@ import type {
   Language,
   LifestyleMode,
   NaqiCategory,
-  WindowDayLabel,
 } from '../../types/index.ts';
 
 export const NaqiCategorySchema = z.enum([
@@ -19,132 +27,136 @@ export const NaqiCategorySchema = z.enum([
   'Severe',
 ]);
 
-export const AdviceActionSchema = z.object({
-  action: z.string().min(4).max(320),
-  why: z.string().min(8).max(480),
-  timeWindow: z.string().min(2).max(100).optional(),
-});
-
-export const RoutineActionSchema = z.object({
-  action: z.string().min(4).max(320),
-  why: z.string().min(8).max(480),
-  co2Benefit: z.string().min(2).max(200).optional(),
-});
-
-export const GeminiAdvicePayloadSchema = z.object({
-  verdict: z.object({
-    level: NaqiCategorySchema,
-    headline: z.string().min(4).max(180),
-    summary: z.string().min(10).max(480),
-  }),
-  outdoor: z.array(AdviceActionSchema).min(1).max(4),
-  indoor: z.array(AdviceActionSchema).min(1).max(6),
-  routine: z.array(RoutineActionSchema).min(1).max(4),
-  mask: z.object({
-    recommended: z.boolean(),
-    type: z.string().min(2).max(140),
+export const AdviceActionSchema = z
+  .object({
+    action: z.string().min(4).max(320),
     why: z.string().min(8).max(480),
-  }),
-  forWhom: z
-    .array(
-      z.object({
-        group: z.string().min(2).max(100),
-        advice: z.string().min(8).max(380),
-      })
-    )
-    .min(1)
-    .max(6),
-});
+    timeWindow: z.string().min(2).max(100).optional(),
+  })
+  .strict();
 
-const WindowSchema = z.object({
-  startHour: z.string().max(16),
-  endHour: z.string().max(16),
-  dayLabel: z.enum(['Today', 'Tomorrow']),
-  endDayLabel: z.enum(['Today', 'Tomorrow']).optional(),
-  avgNaqi: z.number().min(0).max(500),
-  avgPm25: z.number().min(0).max(2000),
-});
+export const RoutineActionSchema = z
+  .object({
+    action: z.string().min(4).max(320),
+    why: z.string().min(8).max(480),
+    co2Benefit: z.string().min(2).max(200).optional(),
+  })
+  .strict();
+
+export const GeminiAdvicePayloadSchema = z
+  .object({
+    verdict: z
+      .object({
+        level: NaqiCategorySchema,
+        headline: z.string().min(4).max(180),
+        summary: z.string().min(10).max(480),
+      })
+      .strict(),
+    outdoor: z.array(AdviceActionSchema).min(1).max(4),
+    indoor: z.array(AdviceActionSchema).min(1).max(6),
+    routine: z.array(RoutineActionSchema).min(1).max(4),
+    mask: z
+      .object({
+        recommended: z.boolean(),
+        type: z.string().min(2).max(140),
+        why: z.string().min(8).max(480),
+      })
+      .strict(),
+    forWhom: z
+      .array(
+        z
+          .object({
+            group: z.string().min(2).max(100),
+            advice: z.string().min(8).max(380),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(6),
+  })
+  .strict();
+
+const WindowSchema = z
+  .object({
+    startHour: z.string().max(16),
+    endHour: z.string().max(16),
+    dayLabel: z.enum(['Today', 'Tomorrow']),
+    endDayLabel: z.enum(['Today', 'Tomorrow']).optional(),
+    avgNaqi: z.number().min(0).max(500),
+    avgPm25: z.number().min(0).max(2000),
+  })
+  .strict();
 
 /**
  * Restricts city names to Unicode letters, combining marks, digits, spaces, and common punctuation.
  */
 export const CITY_NAME_REGEX = /^[\p{L}\p{M}0-9\s.,'()-]+$/u;
 
-export const AdviceRequestSchema = z.object({
-  cityName: z
-    .string()
-    .trim()
-    .min(1, 'City name is required')
-    .max(80, 'City name must be 80 characters or fewer')
-    .regex(CITY_NAME_REGEX, 'City name contains unsupported characters'),
-  aqi: z.number().min(0).max(500),
-  category: NaqiCategorySchema,
-  dominantPollutant: z.enum(['PM2.5', 'PM10']),
-  pm25: z.number().min(0).max(2000),
-  pm10: z.number().min(0).max(3000),
-  basis: z.enum(['rolling_24h', 'current']),
-  temperatureC: z.number().min(-30).max(65),
-  humidityPct: z.number().min(0).max(100),
-  windSpeedKmh: z.number().min(0).max(250),
-  cleanestWindow: WindowSchema.nullable(),
-  worstWindow: WindowSchema.nullable(),
-  household: z
-    .array(
-      z.enum([
-        'kids',
-        'seniors',
-        'pregnant',
-        'asthma_heart',
-        'outdoor_worker',
-      ])
-    )
-    .max(5),
-  lifestyle: z.enum([
-    'wfh',
-    'commute_bike',
-    'commute_car',
-    'commute_metro',
-    'commute_bus',
-    'runner_walker',
-  ]),
-  hasPurifier: z.boolean(),
-  language: z.enum(['en', 'hi']),
-});
+export const AdviceRequestSchema = z
+  .object({
+    cityName: z
+      .string()
+      .trim()
+      .min(1, 'City name is required')
+      .max(
+        APP_CONFIG.maxCityNameLength,
+        `City name must be ${APP_CONFIG.maxCityNameLength} characters or fewer`
+      )
+      .regex(CITY_NAME_REGEX, 'City name contains unsupported characters'),
+    latitude: z
+      .number()
+      .min(INDIA_BOUNDS.minLat, 'Latitude must be within India bounds')
+      .max(INDIA_BOUNDS.maxLat, 'Latitude must be within India bounds')
+      .optional(),
+    longitude: z
+      .number()
+      .min(INDIA_BOUNDS.minLon, 'Longitude must be within India bounds')
+      .max(INDIA_BOUNDS.maxLon, 'Longitude must be within India bounds')
+      .optional(),
+    aqi: z.number().min(0).max(500),
+    category: NaqiCategorySchema,
+    dominantPollutant: z.enum(['PM2.5', 'PM10']),
+    pm25: z.number().min(0).max(2000),
+    pm10: z.number().min(0).max(3000),
+    basis: z.enum(['rolling_24h', 'current']),
+    temperatureC: z.number().min(-30).max(65),
+    humidityPct: z.number().min(0).max(100),
+    windSpeedKmh: z.number().min(0).max(250),
+    cleanestWindow: WindowSchema.nullable(),
+    worstWindow: WindowSchema.nullable(),
+    household: z
+      .array(z.enum(['kids', 'seniors', 'pregnant', 'asthma_heart', 'outdoor_worker']))
+      .max(5),
+    lifestyle: z.enum([
+      'wfh',
+      'commute_bike',
+      'commute_car',
+      'commute_metro',
+      'commute_bus',
+      'runner_walker',
+    ]),
+    hasPurifier: z.boolean(),
+    language: z.enum(['en', 'hi']),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (data.latitude === undefined && data.longitude === undefined) {
+        return true;
+      }
+      if (data.latitude !== undefined && data.longitude !== undefined) {
+        return isWithinIndiaBounds(data.latitude, data.longitude);
+      }
+      return false;
+    },
+    {
+      message: 'Both latitude and longitude must be provided within India bounds',
+      path: ['latitude'],
+    }
+  );
 
 export type ValidatedAdviceRequest = z.infer<typeof AdviceRequestSchema>;
 export type ValidatedGeminiPayload = z.infer<typeof GeminiAdvicePayloadSchema>;
-
-function formatWindowText(
-  win: Pick<HourWindow, 'startHour' | 'endHour' | 'dayLabel'> | null,
-  language: Language,
-  fallbackEn: string,
-  fallbackHi: string
-): string {
-  if (!win) {
-    return language === 'hi' ? fallbackHi : fallbackEn;
-  }
-  const dayTag =
-    language === 'hi'
-      ? win.dayLabel === 'Today'
-        ? 'आज'
-        : 'कल'
-      : win.dayLabel;
-  return `${dayTag} ${win.startHour}–${win.endHour}`;
-}
-
-function formatDayWord(day: WindowDayLabel, hi: boolean): string {
-  if (!hi) return day;
-  return day === 'Today' ? 'आज' : 'कल';
-}
-
-const CATEGORY_HINDI: Record<NaqiCategory, string> = {
-  Good: 'अच्छी',
-  Satisfactory: 'संतोषजनक',
-  Moderate: 'मध्यम',
-  Poor: 'खराब',
-  'Very Poor': 'बहुत खराब',
-  Severe: 'गंभीर',
-};
 
 /**
  * Deterministic rule-based fallback advice builder implementing strict mask rules,
@@ -159,7 +171,10 @@ export function buildFallbackAdvice(input: {
   pm25: number;
   pm10: number;
   windSpeedKmh: number;
-  cleanestWindow: Pick<HourWindow, 'startHour' | 'endHour' | 'dayLabel' | 'avgNaqi'> | null;
+  cleanestWindow: Pick<
+    HourWindow,
+    'startHour' | 'endHour' | 'dayLabel' | 'avgNaqi'
+  > | null;
   worstWindow: Pick<HourWindow, 'startHour' | 'endHour' | 'dayLabel' | 'avgNaqi'> | null;
   household: HouseholdGroup[];
   lifestyle: LifestyleMode;
@@ -168,18 +183,15 @@ export function buildFallbackAdvice(input: {
 }): AdviceResponse {
   const hi = input.language === 'hi';
   const isGood = input.category === 'Good';
-  const isPoorOrWorse =
-    input.category === 'Poor' ||
-    input.category === 'Very Poor' ||
-    input.category === 'Severe';
+  const isPoorOrWorse = isPoorOrWorseCategory(input.category);
 
-  const cleanWindowLabel = formatWindowText(
+  const cleanWindowLabel = formatWindowLabel(
     input.cleanestWindow,
     input.language,
     'next lower-pollution afternoon window',
     'अगला कम प्रदूषण वाला समय'
   );
-  const worstWindowLabel = formatWindowText(
+  const worstWindowLabel = formatWindowLabel(
     input.worstWindow,
     input.language,
     'peak haze hours ahead',
@@ -219,7 +231,7 @@ export function buildFallbackAdvice(input: {
           ? `सैर, खरीदारी या बाहरी काम ${cleanWindowLabel} में तय करें।`
           : `Plan outdoor walks, play, or errands during ${cleanWindowLabel}.`,
       why: hi
-        ? `इस समय में अन्य घंटों की तुलना में कण स्तर सबसे कम (${input.cleanestWindow ? `${formatDayWord(input.cleanestWindow.dayLabel, true)} ~${input.cleanestWindow.avgNaqi} NAQI` : 'न्यूनतम'}) रहने का अनुमान है।`
+        ? `इस समय में अन्य घंटों की तुलना में कण स्तर सबसे कम (${input.cleanestWindow ? `${formatDayLabel(input.cleanestWindow.dayLabel, 'hi')} ~${input.cleanestWindow.avgNaqi} NAQI` : 'न्यूनतम'}) रहने का अनुमान है।`
         : `Forward hourly readings show lower particulate density during ${cleanWindowLabel} than in surrounding hours.`,
       timeWindow: cleanWindowLabel,
     },
@@ -376,9 +388,7 @@ export function buildFallbackAdvice(input: {
     routine,
     mask,
     forWhom: forWhomList,
-    disclaimer: hi
-      ? 'यह जानकारी लाइव Open-Meteo डेटा पर आधारित है, चिकित्सीय निदान नहीं। लक्षण बढ़ने पर डॉक्टर से संपर्क करें।'
-      : 'Informational guidance based on live Open-Meteo estimates, not a medical diagnosis. Consult a clinician for symptoms.',
+    disclaimer: MEDICAL_DISCLAIMER[input.language],
     source: 'fallback',
   };
 }

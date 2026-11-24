@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'motion/react';
+import { APP_CONFIG } from '../lib/config';
 import type { ThemeTokens } from '../types';
 
 interface HeroParticleCanvasProps {
@@ -72,16 +73,27 @@ const HeroParticleCanvas: React.FC<HeroParticleCanvasProps> = ({
     let starParticles: StarParticle[] = [];
 
     function initParticles() {
-      const mobileCap = isMobile ? 120 : 160;
+      const lowEndDevice =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.hardwareConcurrency === 'number' &&
+        navigator.hardwareConcurrency <= APP_CONFIG.lowEndCoreThreshold;
+      const particleCap = lowEndDevice ? 64 : isMobile ? 120 : 160;
       const pmNorm = Math.max(0.15, Math.min(1, stateRef.current.pm25 / 260));
       const isRain =
         stateRef.current.theme.weatherScene === 'rain' ||
         stateRef.current.theme.weatherScene === 'thunder';
       const isFog = stateRef.current.theme.weatherScene === 'fog';
 
-      const rainCount = isRain ? (isMobile ? 42 : 70) : 0;
-      const starCount = !stateRef.current.theme.isDay && !isFog ? (isMobile ? 28 : 42) : 0;
-      const maxHazeBudget = Math.max(18, mobileCap - rainCount - starCount);
+      const rainCount = isRain ? (lowEndDevice ? 24 : isMobile ? 42 : 70) : 0;
+      const starCount =
+        !stateRef.current.theme.isDay && !isFog
+          ? lowEndDevice
+            ? 16
+            : isMobile
+              ? 28
+              : 42
+          : 0;
+      const maxHazeBudget = Math.max(18, particleCap - rainCount - starCount);
       const hazeCount = Math.min(
         maxHazeBudget,
         Math.round((isFog ? 0.9 : pmNorm) * maxHazeBudget)
@@ -141,8 +153,12 @@ const HeroParticleCanvas: React.FC<HeroParticleCanvasProps> = ({
 
     function drawFrame() {
       if (!ctx || document.hidden) return;
-      const { theme: curTheme, pm25: curPm, sunXPercent: sx, sunYPercent: sy } =
-        stateRef.current;
+      const {
+        theme: curTheme,
+        pm25: curPm,
+        sunXPercent: sx,
+        sunYPercent: sy,
+      } = stateRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -198,10 +214,7 @@ const HeroParticleCanvas: React.FC<HeroParticleCanvasProps> = ({
       }
 
       // Rain streaks
-      if (
-        curTheme.weatherScene === 'rain' ||
-        curTheme.weatherScene === 'thunder'
-      ) {
+      if (curTheme.weatherScene === 'rain' || curTheme.weatherScene === 'thunder') {
         ctx.strokeStyle = 'rgba(186, 230, 253, 0.38)';
         ctx.lineWidth = 1.25;
         ctx.beginPath();

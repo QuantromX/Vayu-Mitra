@@ -66,13 +66,7 @@ export function useAdvice(params: {
   airLoading?: boolean;
   isEditingProfile?: boolean;
 }) {
-  const {
-    profile,
-    naqi,
-    weather,
-    airLoading = false,
-    isEditingProfile = false,
-  } = params;
+  const { profile, naqi, weather, airLoading = false, isEditingProfile = false } = params;
 
   const [adviceState, setAdviceState] = useState<{
     cityId: number;
@@ -142,11 +136,7 @@ export function useAdvice(params: {
 
     // Immediate fetch on initial load or city change; debounce rapid chip clicks
     const isCitySwitch = lastFetchedCityIdRef.current !== profile.city.id;
-    const debounceMs = isCitySwitch
-      ? 0
-      : isEditingProfile
-        ? 850
-        : 350;
+    const debounceMs = isCitySwitch ? 0 : isEditingProfile ? 850 : 350;
 
     const timer = window.setTimeout(async () => {
       const snap = latestDataRef.current;
@@ -158,6 +148,8 @@ export function useAdvice(params: {
 
       const payload = {
         cityName: snap.profile.city.name,
+        latitude: snap.profile.city.latitude,
+        longitude: snap.profile.city.longitude,
         aqi: snap.naqi.aqi,
         category: snap.naqi.category,
         dominantPollutant: snap.naqi.dominantPollutant,
@@ -194,18 +186,50 @@ export function useAdvice(params: {
       };
 
       try {
-        const res = await fetch('/api/advice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
+        let lastErr: unknown;
+        let data: AdviceResponse | null = null;
 
-        if (!res.ok) {
-          throw new Error(`Advice service error (HTTP ${res.status})`);
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (controller.signal.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+          }
+          const reqController = new AbortController();
+          const onOuterAbort = () => reqController.abort();
+          controller.signal.addEventListener('abort', onOuterAbort, { once: true });
+          const reqTimeout = window.setTimeout(() => reqController.abort(), 18_000);
+
+          try {
+            const res = await fetch('/api/advice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: reqController.signal,
+            });
+
+            if (!res.ok) {
+              const err = new Error(`Advice service error (HTTP ${res.status})`);
+              if (res.status < 500 || attempt === 1) throw err;
+              lastErr = err;
+            } else {
+              data = (await res.json()) as AdviceResponse;
+              break;
+            }
+          } catch (err) {
+            if (controller.signal.aborted) throw err;
+            if (attempt === 1) throw err;
+            lastErr = err;
+          } finally {
+            window.clearTimeout(reqTimeout);
+            controller.signal.removeEventListener('abort', onOuterAbort);
+          }
+
+          await new Promise((r) => window.setTimeout(r, 350));
         }
 
-        const data = (await res.json()) as AdviceResponse;
+        if (!data) {
+          throw lastErr instanceof Error ? lastErr : new Error('Advice request failed');
+        }
+
         if (!active) return;
 
         lastFetchedCityIdRef.current = snap.profile.city.id;
