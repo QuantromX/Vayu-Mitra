@@ -1,15 +1,20 @@
 {
-  "name": "react-example",
+  "name": "vayumitra",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Breath Companion: live Indian air quality action engine turning Open-Meteo data into personalized, explained guidance for families.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
     "start": "node server.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" server.ts index.html",
-    "lint": "eslint --max-warnings 0 src server.ts",
+    "format:check": "prettier --check \"server/**/*.ts\" server.ts \"src/**/*.{ts,tsx,css}\" index.html",
+    "lint": "eslint --max-warnings 0 src server server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

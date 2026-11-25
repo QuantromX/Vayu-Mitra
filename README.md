@@ -1,8 +1,9 @@
 # VayuMitra (वायुमित्र) — Breath Companion for Indian Families
 
-![CI](https://img.shields.io/badge/CI-format%20%7C%20lint%20%7C%20typecheck%20%7C%20test%20%7C%20build-10b981)
-![Tests](https://img.shields.io/badge/Tests-51%2F51%20passed%20(8%20suites)-0ea5e9)
+![CI](https://img.shields.io/badge/CI-audit%20%7C%20format%20%7C%20lint%20%7C%20typecheck%20%7C%20test%20%7C%20build-10b981)
+![Node](https://img.shields.io/badge/Node-%3E%3D22.18-0ea5e9)
 ![Accessibility](https://img.shields.io/badge/WCAG%202.1-AA-6366f1)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue)
 
 VayuMitra turns **live Open-Meteo air-quality & weather telemetry** into personalized, explained household action plans for Indian families — combining an **India NAQI engine**, an interactive **24-hour forward Time Scrubber**, grounded **Ask VayuMitra Q&A**, privacy-preserving **Photo Check**, and transparent **Data Confidence** disclosures in English and Hindi (हिन्दी).
 
@@ -25,34 +26,31 @@ Most air-quality apps stop at raw AQI numbers (`"245 — Poor"`) without explain
 
 ---
 
-## Architecture & Data Flow
+## Architecture & Module Layout
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the complete module map, `/api/advice` sequence flow, caching/dedupe design, and defense-in-depth layers.
 
 ```text
-+-------------------------------------------------------------------------+
-| React 19 + TypeScript + Tailwind Browser Client                         |
-|                                                                         |
-|  CitySearch / Sample  --->  openMeteo.ts (10m cache + in-flight dedupe) |
-|                                  |                                      |
-|                                  v                                      |
-|                       naqi.ts (India NAQI + forward windows)            |
-|                                  |                                      |
-|         +------------------------+-------------------------+            |
-|         v                        v                         v            |
-|  useAdvice (/api/advice)   AskVayuMitra (/api/ask)   PhotoCheck         |
-|  10m session/mem cache     live profile + forecast   local EXIF strip   |
-|  + offline last-known snapshot fallback & React ErrorBoundary           |
-+-------------------------------------------------------------------------+
-                                   | HTTPS / JSON (.strict() Zod schemas)
-                                   v
-+-------------------------------------------------------------------------+
-| Express Backend (server.ts)                                             |
-|  * Fail-fast GEMINI_API_KEY startup guard + redacted JSON logging       |
-|  * Per-request nonce CSP, HSTS, frame-ancestors 'none', origin CORS     |
-|  * Per-IP, per-route sliding-window rate limits (429 + Retry-After)     |
-|  * gzip compression, immutable /assets cache, 10m cache + in-flight map |
-|  * Google GenAI SDK (gemini-4-hydrogen -> gemini-3.1-flash-lite)        |
-|  * <untrusted_input> prompt-injection delimiters + offline fallback     |
-+-------------------------------------------------------------------------+
++-----------------------------------------------------------------------------+
+| React 19 + TypeScript + Tailwind Browser Client (src/)                      |
+|                                                                             |
+|  components/{advice,assistant,hero,profile,scrubber,search,skyline}         |
+|  hooks/{useAirData,useAdvice,useAppLayoutState,useDashboardTheme,...}       |
+|  lib/{naqi,advice,ask,vision,api,theme,share,profiles,shared}               |
++-----------------------------------------------------------------------------+
+                                       | HTTPS / JSON (.strict() Zod schemas)
+                                       v
++-----------------------------------------------------------------------------+
+| Express Backend (server.ts + server/)                                       |
+|  * server/gemini.ts     - Fail-fast API key guard, timeouts, model failover |
+|  * server/middleware.ts - Per-request nonce CSP, HSTS, origin CORS, errors  |
+|  * server/rateLimiter.ts- Per-IP sliding-window limits (429 + Retry-After)  |
+|  * server/cache.ts      - Bounded 10m TTL cache + in-flight deduplication   |
+|  * server/prompts.ts    - <untrusted_input> prompts & Gemini schemas        |
+|  * server/logger.ts     - Redacted structured JSON logging                  |
+|  * server/frontend.ts   - CSP nonce HTML injection, Vite/static serving     |
+|  * server/routes/*      - /api/advice, /api/ask, /api/photo-check handlers  |
++-----------------------------------------------------------------------------+
 ```
 
 ---
@@ -65,33 +63,9 @@ See [`docs/PROMPTS.md`](docs/PROMPTS.md) for the `<untrusted_input>` prompt-inje
 
 ## Security, Accessibility & Performance
 
-- **Security** ([`SECURITY.md`](SECURITY.md)): Fail-fast server-only `GEMINI_API_KEY`, per-request nonce CSP (no `'unsafe-inline'`/`'unsafe-eval'`), `frame-ancestors 'none'`, HSTS, origin-locked CORS (`403` on foreign origins), `.strict()` Zod validation with India coordinate bounds, JPEG/PNG/WebP magic-byte verification, `<untrusted_input>` prompt isolation, redacted structured logging, and zero `npm audit` vulnerabilities.
+- **Security** ([`SECURITY.md`](SECURITY.md)): Fail-fast server-only `GEMINI_API_KEY`, per-request nonce CSP (no `'unsafe-inline'`/`'unsafe-eval'`), `frame-ancestors 'none'`, HSTS, origin-locked CORS (`403` on foreign origins), `.strict()` Zod validation with India coordinate bounds, JPEG/PNG/WebP magic-byte verification, `<untrusted_input>` prompt isolation, redacted structured logging, and `npm audit --omit=dev --audit-level=high` in CI.
 - **Accessibility** ([`ACCESSIBILITY.md`](ACCESSIBILITY.md)): Skip-to-content link, single `<h1>` + logical heading order, dynamic `<html lang="en|hi">`, `aria-describedby` alert bindings, `aria-live` announcements, dialog focus traps, 44px minimum touch targets, WCAG AA scrim contrast + `prefers-contrast: more`, `prefers-reduced-motion` support, and `320px` / 200% zoom resilience verified with `jest-axe` and Playwright.
-- **Performance (`vite build`)**:
-  - **Entry & Vendor Chunks**: `index.html` (`2.13 kB` / `0.79 kB` gz), CSS (`46.97 kB` / `9.07 kB` gz), `index` app bundle (`171.75 kB` / `43.47 kB` gz), `react-vendor` (`404.71 kB` / `123.12 kB` gz), `motion-vendor` (`149.52 kB` / `48.30 kB` gz), `ui-vendor` (`93.50 kB` / `27.71 kB` gz).
-  - **Lazy-Loaded Chunks**: `PhotoCheckCard` (`16.60 kB` / `5.26 kB` gz), `AskVayuMitra` (`11.90 kB` / `3.84 kB` gz), `HourlyDetailsSheet` (`9.28 kB` / `2.33 kB` gz), `shareCard` (`5.64 kB` / `2.33 kB` gz), `ShortcutsModal` (`3.90 kB` / `1.58 kB` gz), `HeroParticleCanvas` (`3.78 kB` / `1.69 kB` gz).
-  - **Caching & Runtime**: 10-minute TTL caches and concurrent in-flight deduplication in both `src/lib/api/openMeteo.ts` and `server.ts`, `compression` middleware + immutable `/assets/*` headers, `hardwareConcurrency`-capped `<canvas>` particles that pause on hidden tabs, and font preloading with `display=swap`.
-
----
-
-## Verification & Coverage Summary
-
-Latest `npm run test:coverage` output (**8 test files, 51 tests passed**):
-
-| Module / Area | Stmts | Branch | Funcs | Lines | Scope |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| `src/lib` (config & errors) | 96.29% | 83.33% | 100.0% | 96.29% | Centralized config, typed `AppError` hierarchy |
-| `src/lib/theme` | 100.0% | 100.0% | 100.0% | 100.0% | All 6 NAQI themes, day/night & weather selection |
-| `src/lib/share` | 95.62% | 65.90% | 91.66% | 96.11% | Share Air Card 1080×1350 spec & canvas export |
-| `src/lib/shared` | 95.23% | 85.71% | 100.0% | 94.44% | Sanitizers, `<untrusted_input>` wrapper, disclaimers |
-| `src/lib/api` | 88.99% | 77.01% | 82.14% | 90.40% | Open-Meteo fetch, retries, 10m cache & offline snapshots |
-| `src/lib/advice` | 88.42% | 62.75% | 100.0% | 89.53% | `.strict()` Zod schemas, fallbacks, plan tracker |
-| `src/lib/naqi` | 87.76% | 67.37% | 96.29% | 90.05% | Breakpoints, forward windows, scrubber, mask rules |
-| `src/lib/vision` | 86.86% | 63.63% | 90.47% | 89.36% | Local EXIF strip, magic-byte check, vision fallback |
-| `src/lib/profiles` | 82.60% | 76.00% | 100.0% | 81.81% | Saved household profile validation & 8 Indian presets |
-| `src/lib/ask` | 80.70% | 30.30% | 100.0% | 81.48% | `.strict()` Q&A Zod schemas & grounded fallback |
-| `server.ts` | 84.83% | 67.50% | 85.36% | 86.13% | Fail-fast boot, CSP, CORS, rate limit, failover, caching |
-| **All Covered Files** | **69.03%** | **54.44%** | **66.05%** | **71.51%** | Combined suite including React UI & `jest-axe` tests |
+- **Performance**: Route-level code splitting (`PhotoCheckCard`, `AskVayuMitra`, `HourlyDetailsSheet`, `shareCard`, `ShortcutsModal`, `HeroParticleCanvas`), Vite vendor chunk splitting, 10-minute TTL caches with concurrent in-flight deduplication in both `src/lib/api/openMeteo.ts` and `server/cache.ts`, `compression` middleware + immutable `/assets/*` headers, `hardwareConcurrency`-capped `<canvas>` particles that pause on hidden tabs, and font preloading with `display=swap`.
 
 ---
 
@@ -138,3 +112,28 @@ npm run build
 - **Model Estimates vs Ground Stations**: Open-Meteo derives PM2.5/PM10 from regional CAMS/ECMWF atmospheric assimilation grids rather than physical street-level CPCB monitors; localized traffic, construction, or crop burning can differ.
 - **No Medical Advice**: Recommendations follow general public-health exposure practices and do not constitute clinical diagnosis or emergency guidance.
 - **Visual Photo Check**: Photo Check identifies visible layout, ventilation, and haze cues only; camera images cannot measure PM2.5 or AQI concentrations.
+
+---
+
+## Coverage Summary
+
+Generated from `coverage/coverage-summary.json` via `npm run test:coverage`:
+
+| Module / Area | Stmts | Branch | Funcs | Lines | Scope |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| `server.ts` | 83.78% | 52.00% | 40.00% | 83.78% | Entry point, boot & re-exported public API |
+| `server/*` | 84.44% | 70.11% | 92.54% | 84.59% | Middleware, CSP/CORS, rate limit, cache, failover, routes |
+| `src/lib (config & errors)` | 96.30% | 83.33% | 100.00% | 96.30% | Centralized config & typed `AppError` hierarchy |
+| `src/lib/theme` | 100.00% | 100.00% | 100.00% | 100.00% | All 6 NAQI themes, day/night & weather selection |
+| `src/lib/share` | 95.77% | 65.91% | 94.12% | 96.20% | Share Air Card 1080×1350 spec & canvas export |
+| `src/lib/shared` | 95.24% | 85.71% | 100.00% | 94.44% | Sanitizers, `<untrusted_input>` wrapper, disclaimers |
+| `src/lib/api` | 88.51% | 77.10% | 90.91% | 90.57% | Open-Meteo fetch, retries, 10m cache & offline snapshots |
+| `src/lib/advice` | 84.62% | 68.89% | 91.18% | 85.12% | `.strict()` Zod schemas, fallbacks & plan tracker |
+| `src/lib/naqi` | 88.59% | 69.10% | 97.06% | 89.94% | Breakpoints, forward windows, scrubber & mask rules |
+| `src/lib/vision` | 83.61% | 54.88% | 92.59% | 88.29% | Local EXIF strip, magic-byte check & vision fallback |
+| `src/lib/profiles` | 84.00% | 75.00% | 100.00% | 83.33% | Saved household profile validation & 8 Indian presets |
+| `src/lib/ask` | 65.12% | 31.25% | 81.82% | 65.48% | `.strict()` Q&A Zod schemas & grounded fallback |
+| `src/hooks` | 63.39% | 39.18% | 63.39% | 67.23% | State, data-fetching, theme & layout hooks |
+| `src/components` | 48.59% | 45.71% | 53.44% | 52.14% | React UI views, modals, accessibility & scrubbers |
+| **All Covered Files** | **68.60%** | **54.08%** | **69.79%** | **71.39%** | Combined suite across server & client modules |
+

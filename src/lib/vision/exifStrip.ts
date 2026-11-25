@@ -95,6 +95,12 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+function resolveOutputMimeType(inputType: string): AllowedPhotoMimeType {
+  if (inputType === 'image/png') return 'image/png';
+  if (inputType === 'image/webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
 /**
  * Strips all EXIF/GPS/camera metadata client-side by redrawing the uploaded image
  * onto an offscreen canvas (capped at 1440px longest side) and exporting a clean Blob.
@@ -126,12 +132,7 @@ export async function stripExifFromImage(file: File): Promise<StrippedPhotoPaylo
     ctx.drawImage(img, 0, 0, targetW, targetH);
 
     // Re-encoding via canvas strips all EXIF, IPTC, XMP, and GPS metadata headers
-    const outputMime: AllowedPhotoMimeType =
-      file.type === 'image/png'
-        ? 'image/png'
-        : file.type === 'image/webp'
-          ? 'image/webp'
-          : 'image/jpeg';
+    const outputMime = resolveOutputMimeType(file.type);
 
     const cleanBlob = await canvasToBlob(canvas, outputMime, 0.85);
     if (cleanBlob.size > MAX_PHOTO_BYTES) {

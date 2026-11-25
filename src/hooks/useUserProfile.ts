@@ -3,14 +3,25 @@ import {
   SAMPLE_PROFILES,
   loadSavedProfile,
   saveProfileToStorage,
-} from '../lib/profiles/samples';
+} from '../lib/profiles/samples.ts';
 import type {
   CityLocation,
   HouseholdGroup,
   Language,
   LifestyleMode,
   UserProfile,
-} from '../types';
+} from '../types/index.ts';
+
+function findMatchingSampleId(initial: UserProfile): string | null {
+  const match = SAMPLE_PROFILES.find(
+    (s) =>
+      s.profile.city.name === initial.city.name &&
+      s.profile.lifestyle === initial.lifestyle &&
+      s.profile.hasPurifier === initial.hasPurifier &&
+      JSON.stringify(s.profile.household) === JSON.stringify(initial.household)
+  );
+  return match ? match.id : null;
+}
 
 /**
  * Manages the user's household profile, city selection, language preference,
@@ -18,17 +29,9 @@ import type {
  */
 export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile>(() => loadSavedProfile());
-  const [activeSampleId, setActiveSampleId] = useState<string | null>(() => {
-    const initial = loadSavedProfile();
-    const match = SAMPLE_PROFILES.find(
-      (s) =>
-        s.profile.city.name === initial.city.name &&
-        s.profile.lifestyle === initial.lifestyle &&
-        s.profile.hasPurifier === initial.hasPurifier &&
-        JSON.stringify(s.profile.household) === JSON.stringify(initial.household)
-    );
-    return match ? match.id : null;
-  });
+  const [activeSampleId, setActiveSampleId] = useState<string | null>(() =>
+    findMatchingSampleId(loadSavedProfile())
+  );
 
   useEffect(() => {
     saveProfileToStorage(profile);

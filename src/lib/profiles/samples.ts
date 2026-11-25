@@ -31,6 +31,18 @@ export const DEFAULT_PROFILE: UserProfile = firstSample.profile;
 
 const STORAGE_KEY = 'vayumitra_user_profile_v1';
 
+function hasValidStoredCity(
+  parsed: Partial<UserProfile> | null | undefined
+): parsed is Partial<UserProfile> & { city: UserProfile['city'] } {
+  const city = parsed?.city;
+  return Boolean(
+    city &&
+    typeof city.name === 'string' &&
+    typeof city.latitude === 'number' &&
+    typeof city.longitude === 'number'
+  );
+}
+
 /**
  * Loads the persisted user profile from localStorage with safe try/catch and validation.
  */
@@ -42,13 +54,7 @@ export function loadSavedProfile(): UserProfile {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_PROFILE;
     const parsed = JSON.parse(raw) as Partial<UserProfile>;
-    if (
-      !parsed ||
-      !parsed.city ||
-      typeof parsed.city.name !== 'string' ||
-      typeof parsed.city.latitude !== 'number' ||
-      typeof parsed.city.longitude !== 'number'
-    ) {
+    if (!hasValidStoredCity(parsed)) {
       return DEFAULT_PROFILE;
     }
     return {

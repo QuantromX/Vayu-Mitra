@@ -13,6 +13,7 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'server.ts',
+        'server/**/*.ts',
         'src/lib/**/*.{ts,tsx}',
         'src/hooks/**/*.{ts,tsx}',
         'src/components/**/*.{ts,tsx}',

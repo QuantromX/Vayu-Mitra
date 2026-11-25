@@ -70,6 +70,33 @@ body {
     opacity 500ms ease;
 }
 
+.vm-accent-text {
+  color: var(--vm-accent);
+}
+
+.vm-accent-pill {
+  background-color: var(--vm-accent);
+  color: var(--vm-accent-contrast);
+}
+
+.vm-sky-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--vm-sky-top) 0%,
+    var(--vm-sky-mid) 52%,
+    var(--vm-sky-bottom) 100%
+  );
+}
+
+.vm-hero-scrim {
+  background: linear-gradient(
+    180deg,
+    var(--vm-scrim) 0%,
+    rgba(2, 6, 23, 0.56) 56%,
+    rgba(2, 6, 23, 0.8) 100%
+  );
+}
+
 /* Signature glass elevation with subtle inner top highlight, 1px translucent border, soft shadow & faint grain */
 .vm-glass-card {
   position: relative;

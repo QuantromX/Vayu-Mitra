@@ -1,8 +1,13 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
-import { Loader2, MapPin, Search, X } from 'lucide-react';
-import { APP_CONFIG } from '../lib/config';
-import { searchIndianCities } from '../lib/api/openMeteo';
-import type { CityLocation, Language } from '../types';
+import type React from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { searchIndianCities } from '../lib/api/openMeteo.ts';
+import { UI_LIMITS } from '../lib/config.ts';
+import type { CityLocation, Language } from '../types/index.ts';
+import {
+  CitySearchInputBox,
+  CitySuggestionsListbox,
+  handleAutocompleteKeyDown,
+} from './search/CitySearchParts.tsx';
 
 interface CitySearchProps {
   selectedCity: CityLocation;
@@ -11,18 +16,11 @@ interface CitySearchProps {
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export const CitySearch: React.FC<CitySearchProps> = ({
-  selectedCity,
-  language,
-  onSelectCity,
-  inputRef,
-}) => {
-  const hi = language === 'hi';
-  const listboxId = useId();
-  const inputId = useId();
-  const errorId = useId();
-  const containerRef = useRef<HTMLDivElement>(null);
-
+function useCityAutocomplete(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  hi: boolean,
+  onSelectCity: (city: CityLocation) => void
+) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,10 +30,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed.length < 2) {
-      return;
-    }
-
+    if (trimmed.length < 2) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -52,8 +47,7 @@ export const CitySearch: React.FC<CitySearchProps> = ({
       } finally {
         setLoading(false);
       }
-    }, 320);
-
+    }, UI_LIMITS.citySearchDebounceMs);
     return () => {
       window.clearTimeout(timer);
       controller.abort();
@@ -61,45 +55,95 @@ export const CitySearch: React.FC<CitySearchProps> = ({
   }, [query, hi]);
 
   useEffect(() => {
-    function handleOutsideClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        e.target instanceof Node &&
+        !containerRef.current.contains(e.target)
+      ) {
         setOpen(false);
       }
-    }
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, []);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [containerRef]);
 
-  function commitSelection(city: CityLocation) {
+  const commitSelection = (city: CityLocation) => {
     onSelectCity(city);
     setQuery('');
     setResults([]);
     setOpen(false);
     setActiveIndex(-1);
-  }
+  };
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open || results.length === 0) {
-      if (e.key === 'Escape') setOpen(false);
-      return;
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev + 1) % results.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((prev) => (prev - 1 + results.length) % results.length);
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
-      const selected = results[activeIndex];
-      if (selected) {
-        e.preventDefault();
-        commitSelection(selected);
+  return {
+    query,
+    open,
+    loading,
+    error,
+    results,
+    activeIndex,
+    setQuery,
+    setOpen,
+    setLoading,
+    setError,
+    setResults,
+    setActiveIndex,
+    commitSelection,
+  };
+}
+
+function buildAutocompleteHandlers(state: ReturnType<typeof useCityAutocomplete>) {
+  return {
+    onChangeText: (val: string) => {
+      state.setQuery(val);
+      if (val.trim().length >= 2) {
+        state.setOpen(true);
+      } else {
+        state.setResults([]);
+        state.setLoading(false);
+        state.setError(null);
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setOpen(false);
-    }
-  }
+    },
+    onFocusOpen: () => {
+      if (state.results.length > 0) state.setOpen(true);
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) =>
+      handleAutocompleteKeyDown({
+        e,
+        open: state.open,
+        results: state.results,
+        activeIndex: state.activeIndex,
+        setActiveIndex: state.setActiveIndex,
+        setOpen: state.setOpen,
+        commitSelection: state.commitSelection,
+      }),
+    onClear: () => {
+      state.setQuery('');
+      state.setResults([]);
+      state.setOpen(false);
+    },
+  };
+}
+
+export const CitySearch: React.FC<CitySearchProps> = ({
+  selectedCity,
+  language,
+  onSelectCity,
+  inputRef,
+}) => {
+  const hi = language === 'hi';
+  const listboxId = useId();
+  const inputId = useId();
+  const errorId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const state = useCityAutocomplete(containerRef, hi, onSelectCity);
+  const handlers = buildAutocompleteHandlers(state);
+  const placeholder = selectedCity.admin1
+    ? `${selectedCity.name}, ${selectedCity.admin1}`
+    : selectedCity.name;
+  const showDropdown =
+    state.open && (state.query.trim().length >= 2 || Boolean(state.error));
 
   return (
     <div ref={containerRef} className="relative">
@@ -110,114 +154,32 @@ export const CitySearch: React.FC<CitySearchProps> = ({
         {hi ? 'भारतीय शहर चुनें' : 'Indian city'}
       </label>
 
-      <div className="relative flex items-center">
-        <Search
-          className="w-4 h-4 text-slate-300 absolute left-3.5 pointer-events-none"
-          aria-hidden="true"
-        />
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="text"
-          role="combobox"
-          maxLength={APP_CONFIG.maxCityNameLength}
-          aria-expanded={open}
-          aria-controls={listboxId}
-          aria-autocomplete="list"
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? errorId : undefined}
-          aria-activedescendant={
-            open && activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined
-          }
-          value={query}
-          onChange={(e) => {
-            const val = e.target.value;
-            setQuery(val);
-            if (val.trim().length >= 2) {
-              setOpen(true);
-            } else {
-              setResults([]);
-              setLoading(false);
-              setError(null);
-            }
-          }}
-          onFocus={() => {
-            if (results.length > 0) setOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder={
-            selectedCity.admin1
-              ? `${selectedCity.name}, ${selectedCity.admin1}`
-              : selectedCity.name
-          }
-          className="w-full min-h-[44px] pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/55 border border-white/20 text-sm text-white placeholder:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 transition-colors"
-        />
-        {loading ? (
-          <Loader2
-            className="w-4 h-4 text-slate-300 animate-spin absolute right-3.5"
-            aria-label={hi ? 'खोज रहा है' : 'Searching cities'}
-          />
-        ) : query.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setQuery('');
-              setResults([]);
-              setOpen(false);
-            }}
-            aria-label={hi ? 'खोज साफ़ करें' : 'Clear city search'}
-            className="absolute right-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            <X className="w-4 h-4" aria-hidden="true" />
-          </button>
-        ) : null}
-      </div>
+      <CitySearchInputBox
+        inputRef={inputRef}
+        inputId={inputId}
+        listboxId={listboxId}
+        errorId={errorId}
+        placeholder={placeholder}
+        hi={hi}
+        query={state.query}
+        open={state.open}
+        loading={state.loading}
+        error={state.error}
+        activeIndex={state.activeIndex}
+        {...handlers}
+      />
 
-      {open && (query.trim().length >= 2 || error) && (
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label={hi ? 'शहर सुझाव' : 'City suggestions'}
-          className="absolute z-50 left-0 right-0 mt-1.5 rounded-xl bg-slate-950/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
-        >
-          {error ? (
-            <div id={errorId} role="alert" className="px-4 py-3 text-xs text-rose-200">
-              {error}
-            </div>
-          ) : results.length === 0 && !loading ? (
-            <div className="px-4 py-3 text-xs text-slate-300">
-              {hi ? 'कोई भारतीय शहर नहीं मिला।' : 'No matching Indian cities found.'}
-            </div>
-          ) : (
-            results.map((city, idx) => {
-              const isActive = idx === activeIndex;
-              return (
-                <button
-                  key={city.id}
-                  id={`${listboxId}-opt-${idx}`}
-                  type="button"
-                  role="option"
-                  aria-selected={isActive}
-                  onClick={() => commitSelection(city)}
-                  className={`w-full min-h-[44px] px-3.5 py-2.5 text-left flex items-center gap-2.5 text-sm transition-colors ${
-                    isActive
-                      ? 'bg-white/15 text-white'
-                      : 'text-slate-200 hover:bg-white/10'
-                  }`}
-                >
-                  <MapPin
-                    className="w-4 h-4 shrink-0 text-slate-300"
-                    aria-hidden="true"
-                  />
-                  <span className="truncate font-medium">{city.name}</span>
-                  {city.admin1 && (
-                    <span className="text-xs text-slate-400 truncate">{city.admin1}</span>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
+      {showDropdown && (
+        <CitySuggestionsListbox
+          listboxId={listboxId}
+          errorId={errorId}
+          hi={hi}
+          error={state.error}
+          loading={state.loading}
+          results={state.results}
+          activeIndex={state.activeIndex}
+          onSelect={state.commitSelection}
+        />
       )}
     </div>
   );

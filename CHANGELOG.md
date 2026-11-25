@@ -1,5 +1,18 @@
 # Changelog
 
+## Behaviour-Preserving Quality Pass (Part A)
+
+### Modularity & Maintainability
+- Decomposed `server.ts` into focused, Node type-stripping-compatible ESM modules under `server/` (`logger.ts`, `rateLimiter.ts`, `cache.ts`, `prompts.ts`, `gemini.ts`, `middleware.ts`, `frontend.ts`, and `server/routes/{advice,ask,photoCheck}.ts`) while preserving every exported symbol and API contract.
+- Extracted focused UI subcomponents and controller hooks across `src/components/{advice,assistant,hero,profile,scrubber,search,skyline}` and `src/hooks/` (`useDashboardTheme.ts`, `useDashboardController.ts`, `adviceHelpers.ts`).
+- Documented system topology, request lifecycle, caching, rate limiting, and security layers in `ARCHITECTURE.md`.
+
+### Tooling, Quality Gates & Repo Hygiene
+- Enforced strict ESLint complexity/size checks (`--max-warnings 0` across `src/`, `server/`, and `server.ts`) and Prettier formatting across backend, frontend, CSS, and HTML entry files.
+- Included `server/**/*.ts` in Vitest coverage reporting (`vitest.config.ts`), enabled `noImplicitReturns` and `noImplicitOverride` in `tsconfig.json`, and removed unused build config plugins in `vite.config.ts`.
+- Hardened `.github/workflows/ci.yml` with read-only `permissions`, `concurrency` cancellation, `npm audit --omit=dev --audit-level=high`, and `coverage/coverage-summary.json` artifact uploads.
+- Added MIT `LICENSE`, standardized `package.json` / `package-lock.json` metadata (`vayumitra@1.0.0`, `engines.node >= 22.18`), updated `.gitignore`, and removed redundant lock/sample/walkthrough files after merging PoC notes into `SECURITY.md`.
+
 ## Hardening & Production Polish
 
 ### Security

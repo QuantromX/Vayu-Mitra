@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { ArrowRight, X } from 'lucide-react';
-import type { Language, ThemeTokens } from '../types';
+import type { Language, ThemeTokens } from '../types/index.ts';
 
 export const ONBOARDING_STORAGE_KEY = 'vayumitra_onboarding_done_v1';
 
@@ -51,6 +52,34 @@ const STEPS = [
   },
 ];
 
+function getStepButtonLabel(isLastStep: boolean, hi: boolean): string {
+  if (!isLastStep) {
+    return hi ? 'अगला' : 'Next';
+  }
+  return hi ? 'शुरू करें' : 'Got it';
+}
+
+const OnboardingBadgeSvg: React.FC<{ theme: ThemeTokens }> = ({ theme }) => (
+  <svg
+    width="44"
+    height="44"
+    viewBox="0 0 48 48"
+    className="w-11 h-11 shrink-0"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.08)" />
+    <circle cx="20" cy="18" r="5" fill={theme.sunColor} />
+    <path
+      d="M12 34 L17 24 L23 30 L28 21 L36 34 Z"
+      fill="rgba(255,255,255,0.2)"
+      stroke={theme.accent}
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
   language,
   theme,
@@ -62,31 +91,15 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
   const current = STEPS[step] ?? STEPS[0];
   if (!current) return null;
 
+  const isLastStep = step >= STEPS.length - 1;
+
   return (
     <aside
       aria-label={hi ? 'त्वरित परिचय' : 'Quick start guide'}
       className="vm-glass-card rounded-[24px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
     >
       <div className="flex items-center gap-3.5 min-w-0">
-        {/* Original lightweight SVG onboarding illustration */}
-        <svg
-          width="44"
-          height="44"
-          viewBox="0 0 48 48"
-          className="w-11 h-11 shrink-0"
-          aria-hidden="true"
-        >
-          <circle cx="24" cy="24" r="22" fill="rgba(255,255,255,0.08)" />
-          <circle cx="20" cy="18" r="5" fill={theme.sunColor} />
-          <path
-            d="M12 34 L17 24 L23 30 L28 21 L36 34 Z"
-            fill="rgba(255,255,255,0.2)"
-            stroke={theme.accent}
-            strokeWidth="1.6"
-            strokeLinejoin="round"
-          />
-        </svg>
-
+        <OnboardingBadgeSvg theme={theme} />
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-semibold text-white">
             <span>{hi ? current.hiTitle : current.enTitle}</span>
@@ -111,18 +124,10 @@ export const OnboardingBanner: React.FC<OnboardingBannerProps> = ({
 
         <button
           type="button"
-          onClick={() => {
-            if (step < STEPS.length - 1) {
-              setStep((s) => s + 1);
-            } else {
-              onDismiss();
-            }
-          }}
+          onClick={() => (isLastStep ? onDismiss() : setStep((s) => s + 1))}
           className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white text-slate-950 text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-slate-100 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          <span>
-            {step < STEPS.length - 1 ? (hi ? 'अगला' : 'Next') : hi ? 'शुरू करें' : 'Got it'}
-          </span>
+          <span>{getStepButtonLabel(isLastStep, hi)}</span>
           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
 

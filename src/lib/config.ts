@@ -25,6 +25,25 @@ export const APP_CONFIG = {
   lowEndCoreThreshold: 4,
 } as const;
 
+export const UI_LIMITS = {
+  dragDismissThresholdPx: 90,
+  scrollCompactThresholdPx: 260,
+  citySearchDebounceMs: 320,
+  adviceDebounceEditingMs: 850,
+  adviceDebounceDefaultMs: 350,
+  adviceRevealIntervalMs: 90,
+  adviceRevealMaxStage: 4,
+  aqiRingGaugeSizePx: 188,
+  aqiRingGaugeStrokePx: 11,
+  aqiRingMaxNaqi: 500,
+  aqiCountUpDurationMs: 520,
+  particleDesktopCap: 160,
+  particleMobileCap: 120,
+  particleLowEndCap: 64,
+  particleFrameIntervalMs: 42,
+  mobileBreakpointPx: 768,
+} as const;
+
 export const SERVER_RATE_LIMITS = {
   windowMs: 60_000,
   advicePerMinute: 20,
